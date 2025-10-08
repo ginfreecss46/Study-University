@@ -1,0 +1,284 @@
+import { ThemedText } from '@/components/themed-text';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { useState, useEffect, useCallback } from 'react';
+import { View, TextInput, StyleSheet, Alert, FlatList, ActivityIndicator, useColorScheme as useRNColorScheme, Pressable, Linking } from 'react-native';
+import { Colors, Spacing, FontSizes } from '@/constants/theme';
+import { Button } from '@/components/ui/Button';
+import { Feather } from '@expo/vector-icons';
+import { isAdmin } from '@/lib/auth';
+
+type Reply = {
+  id: string;
+  created_at: string;
+  content: string;
+  profiles: { full_name: string } | null;
+  post_reactions: { user_id: string }[];
+  likes_count?: number;
+};
+type Post = {
+  id: string;
+  created_at: string;
+  title: string;
+  content: string;
+  user_id: string;
+  profiles: { full_name: string } | null;
+  post_reactions: { user_id: string }[];
+  likes_count?: number;
+  documents: { id: string; title: string; file_url: string }[] | null;
+};
+
+export default function PostDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useAuth();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const colorScheme = useRNColorScheme() ?? 'light';
+  const styles = getStyles(colorScheme);
+  const themeColors = Colors[colorScheme];
+
+  const [post, setPost] = useState<Post | null>(null);
+  const [replies, setReplies] = useState<Reply[]>([]);
+  const [newReply, setNewReply] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const userIsAdmin = isAdmin(session?.user);
+
+  const fetchPostAndReplies = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const { data: postData, error: postError } = await supabase
+        .from('forum_posts')
+        .select('*, profiles!user_id(full_name), post_reactions!post_id(user_id), documents(*)')
+        .eq('id', id)
+        .single();
+      if (postError) throw postError;
+      const postWithLikes = {
+        ...postData,
+        likes_count: postData?.post_reactions?.length || 0,
+      };
+      setPost(postWithLikes);
+
+      const { data: repliesData, error: repliesError } = await supabase
+        .from('forum_post_replies')
+        .select('*, profiles!user_id(full_name), post_reactions!reply_id(user_id)')
+        .eq('post_id', id)
+        .order('created_at', { ascending: true });
+      if (repliesError) throw repliesError;
+      const repliesWithLikes = repliesData?.map(reply => ({
+        ...reply,
+        likes_count: reply.post_reactions?.length || 0,
+      })) || [];
+      setReplies(repliesWithLikes);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchPostAndReplies();
+  }, [fetchPostAndReplies]);
+
+  useEffect(() => {
+    if (post) {
+      navigation.setOptions({ title: post.title });
+    }
+  }, [post]);
+
+  const handleAddReply = async () => {
+    if (!session || !post) return;
+    if (!newReply.trim()) return;
+
+    try {
+      const { error } = await supabase.from('forum_post_replies').insert({ post_id: post.id, user_id: session.user.id, content: newReply });
+      if (error) throw error;
+      setNewReply('');
+      fetchPostAndReplies();
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message);
+    }
+  };
+
+  const handleLike = async (targetId: string, targetType: 'post' | 'reply') => {
+    if (!session) return Alert.alert('Erreur', 'Vous devez être connecté pour aimer.');
+
+    try {
+      const { data: existingLike, error: fetchError } = await supabase
+        .from('post_reactions')
+        .select('id')
+        .eq(targetType === 'post' ? 'post_id' : 'reply_id', targetId)
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+      if (existingLike) {
+        await supabase.from('post_reactions').delete().eq('id', existingLike.id);
+      } else {
+        await supabase.from('post_reactions').insert({ [targetType === 'post' ? 'post_id' : 'reply_id']: targetId, user_id: session.user.id, type: 'like' });
+      }
+      fetchPostAndReplies();
+    } catch (error: any) {
+      Alert.alert('Erreur', error.message);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!post) return;
+    Alert.alert('Confirmer la suppression', 'Êtes-vous sûr de vouloir supprimer ce message ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('forum_posts').delete().eq('id', post.id);
+          if (error) {
+            Alert.alert('Erreur', error.message);
+          } else {
+            router.back();
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDeleteReply = async (replyId: string) => {
+    Alert.alert('Confirmer la suppression', 'Êtes-vous sûr de vouloir supprimer cette réponse ?', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('forum_post_replies').delete().eq('id', replyId);
+          if (error) {
+            Alert.alert('Erreur', error.message);
+          } else {
+            fetchPostAndReplies();
+          }
+        },
+      },
+    ]);
+  };
+
+  const renderReply = ({ item }: { item: Reply }) => (
+    <View style={styles.replyContainer}>
+      <ThemedText style={{ color: themeColors.text }}>{item.content}</ThemedText>
+      <ThemedText style={styles.metaText}>
+        - {item.profiles?.full_name || 'Anonyme'} le {new Date(item.created_at).toLocaleDateString('fr-FR')}
+      </ThemedText>
+      <View style={styles.replyActions}>
+        <Pressable onPress={() => handleLike(item.id, 'reply')} style={({ pressed }) => [styles.likeButton, pressed && styles.buttonPressed]}>
+          <Feather name={item.post_reactions?.some(r => r.user_id === session?.user.id) ? "heart" : "heart"} size={20} color={item.post_reactions?.some(r => r.user_id === session?.user.id) ? themeColors.primary : themeColors.textSecondary} />
+          <ThemedText style={styles.likeCount}>{item.likes_count || 0}</ThemedText>
+        </Pressable>
+        {userIsAdmin && (
+          <Pressable onPress={() => handleDeleteReply(item.id)} style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed]}>
+            <Feather name="trash-2" size={20} color={themeColors.destructive} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+
+  if (loading) {
+    return <ActivityIndicator size="large" style={{ flex: 1 }} color={themeColors.primary} />;
+  }
+
+  if (!post) {
+    return <View style={styles.container}><ThemedText style={{ color: themeColors.text }}>Message non trouvé.</ThemedText></View>;
+  }
+
+  return (
+    <FlatList
+      style={styles.container}
+      ListHeaderComponent={() => (
+        <View style={styles.card}>
+          <View style={styles.postHeader}>
+            <ThemedText type="title" style={styles.postTitle}>{post.title}</ThemedText>
+            {session?.user.id === post.user_id && (
+              <Button title="Modifier" onPress={() => { console.log('Editing post with ID:', post.id); router.push(`/edit-post/${post.id}`); }} variant="secondary" />
+            )}
+            {userIsAdmin && (
+              <Button title="Supprimer" onPress={() => { console.log('Deleting post with ID:', post.id); handleDeletePost(); }} variant="secondary" style={{backgroundColor: themeColors.destructive}} />
+            )}
+          </View>
+          <ThemedText style={styles.metaText}>
+            Par {post.profiles?.full_name || 'Anonyme'} le {new Date(post.created_at).toLocaleDateString('fr-FR')}
+          </ThemedText>
+          <ThemedText style={styles.postContent}>{post.content}</ThemedText>
+          {post.documents && post.documents.length > 0 && (
+            <View style={styles.documentContainer}>
+              <ThemedText style={styles.documentTitle}>Pièce jointe :</ThemedText>
+              <Pressable onPress={() => Linking.openURL(post.documents[0].file_url)}>
+                <ThemedText style={styles.documentLink}>{post.documents[0].title}</ThemedText>
+              </Pressable>
+            </View>
+          )}
+          <View style={styles.likeContainer}>
+            <Pressable onPress={() => handleLike(post.id, 'post')} style={({ pressed }) => [styles.likeButton, pressed && styles.buttonPressed]}>
+              <Feather name="heart" size={20} color={post.post_reactions?.some(r => r.user_id === session?.user.id) ? themeColors.primary : themeColors.textSecondary} />
+              <ThemedText style={styles.likeCount}>{post.likes_count || 0}</ThemedText>
+            </Pressable>
+          </View>
+          <ThemedText type="subtitle" style={styles.repliesHeader}>Réponses</ThemedText>
+        </View>
+      )}
+      data={replies}
+      renderItem={renderReply}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: Spacing.lg }}
+      ListFooterComponent={() => (
+        <View style={styles.replyInputContainer}>
+          <TextInput
+            placeholder="Votre réponse..."
+            value={newReply}
+            onChangeText={setNewReply}
+            style={styles.input}
+            multiline
+            placeholderTextColor={themeColors.textSecondary}
+          />
+          <Button title="Répondre" onPress={handleAddReply} disabled={!newReply.trim()} />
+        </View>
+      )}
+      ListEmptyComponent={() => <ThemedText style={styles.emptyText}>Aucune réponse pour le moment.</ThemedText>}
+    />
+  );
+}
+
+const getStyles = (colorScheme: 'light' | 'dark') => {
+  const themeColors = Colors[colorScheme];
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: themeColors.background, paddingTop: 60 },
+    card: {
+      backgroundColor: themeColors.card,
+      borderRadius: 16,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      borderWidth: 1,
+      borderColor: themeColors.border,
+    },
+    postHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
+    postTitle: { flex: 1, fontSize: FontSizes.title, fontWeight: 'bold', color: themeColors.text },
+    postContent: { marginVertical: Spacing.md, fontSize: FontSizes.body, lineHeight: 24, color: themeColors.text },
+    metaText: { color: themeColors.textSecondary, marginVertical: Spacing.xs, fontSize: FontSizes.caption },
+    likeContainer: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm },
+    likeButton: { flexDirection: 'row', alignItems: 'center' },
+    likeCount: { marginLeft: Spacing.xs, fontSize: FontSizes.caption, color: themeColors.textSecondary },
+    buttonPressed: { opacity: 0.7 },
+    repliesHeader: { marginTop: Spacing.lg, marginBottom: Spacing.md, borderTopWidth: 1, borderTopColor: themeColors.border, paddingTop: Spacing.md, fontSize: FontSizes.subtitle, fontWeight: 'bold', color: themeColors.text },
+    replyContainer: { backgroundColor: themeColors.card, padding: Spacing.md, borderRadius: 12, marginBottom: Spacing.sm, borderWidth: 1, borderColor: themeColors.border },
+    replyActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.sm },
+    deleteButton: { padding: Spacing.sm },
+    replyInputContainer: { marginTop: Spacing.lg },
+    input: { borderWidth: 1, borderColor: themeColors.border, padding: Spacing.md, borderRadius: 12, marginBottom: Spacing.sm, backgroundColor: themeColors.background, color: themeColors.text, fontSize: FontSizes.body },
+    emptyText: { textAlign: 'center', color: themeColors.textSecondary, marginTop: Spacing.lg, fontSize: FontSizes.body },
+    documentContainer: { marginTop: Spacing.md },
+    documentTitle: { fontSize: FontSizes.body, fontWeight: 'bold', color: themeColors.text, marginBottom: Spacing.sm },
+    documentLink: { fontSize: FontSizes.body, color: themeColors.primary, textDecorationLine: 'underline' },
+  });
+}

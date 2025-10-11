@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider, useTheme } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -46,16 +46,19 @@ function RootLayoutNav() {
   const { session, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const { colors } = useTheme();
 
   useEffect(() => {
-    if (loading) return; // Do nothing while loading
+    if (loading) return;
 
-    // Hide the splash screen once the app is ready
     SplashScreen.hideAsync();
 
     const inAuthGroup = segments[0] === '(auth)';
+    const isAtRoot = segments.length === 0;
 
-    if (!session && !inAuthGroup) {
+    if (session && isAtRoot) {
+      router.replace('/(tabs)');
+    } else if (!session && !inAuthGroup) {
       router.replace('/login');
     } else if (session && inAuthGroup) {
       router.replace('/');
@@ -63,14 +66,43 @@ function RootLayoutNav() {
   }, [session, loading, segments]);
 
   if (loading) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: colors.card,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack.Screen name="edit-profile" options={{ title: 'Modifier le profil' }} />
+      <Stack.Screen name="add-event" options={{ title: 'Ajouter un événement' }} />
+      <Stack.Screen name="add-assignment" options={{ title: 'Ajouter un devoir' }} />
+      <Stack.Screen name="add-course" options={{ title: 'Ajouter une matière' }} />
+      <Stack.Screen name="add-grade" options={{ title: 'Ajouter une note' }} />
+      <Stack.Screen name="add-post" options={{ title: 'Nouveau Post' }} />
+      <Stack.Screen name="add-schedule" options={{ title: 'Ajouter un cours' }} />
+      <Stack.Screen name="assignments" options={{ title: 'Devoirs' }} />
+      <Stack.Screen name="courses" options={{ title: 'Matières' }} />
+      <Stack.Screen name="edit-assignment/[id]" options={{ title: 'Modifier le devoir' }} />
+      <Stack.Screen name="edit-course/[id]" options={{ title: 'Modifier la matière' }} />
+      <Stack.Screen name="edit-post/[id]" options={{ title: 'Modifier le post' }} />
+      <Stack.Screen name="forum" options={{ title: 'Forum' }} />
+      <Stack.Screen name="grades" options={{ title: 'Notes' }} />
+      <Stack.Screen name="groups" options={{ title: 'Groupes' }} />
+      <Stack.Screen name="manage-schedules" options={{ title: "Gérer l'emploi du temps" }} />
+      <Stack.Screen name="upload-document" options={{ title: 'Téléverser un document' }} />
+      <Stack.Screen name="documents" options={{ title: 'Bibliothèque' }} />
+      <Stack.Screen name="chat/[id]" options={{ title: 'Chat' }} />
+      <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
     </Stack>
   );
 }

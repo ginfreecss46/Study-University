@@ -29,6 +29,7 @@ export default function ForumScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
 
+  // Fetch user role for admin delete privileges
   useEffect(() => {
     if (session) {
       const fetchUserProfile = async () => {
@@ -40,14 +41,15 @@ export default function ForumScreen() {
     }
   }, [session]);
 
-  const fetchPosts = useCallback(async (queryText: string) => {
+  const fetchPosts = useCallback(async (query: string) => {
     try {
       setLoading(true);
-      let query = supabase.from('forum_posts').select('id, created_at, title, user_id, profiles(full_name), post_reactions(user_id)');
-      if (queryText) {
-        query = query.ilike('title', `%${queryText}%`);
+      let queryBuilder = supabase.from('forum_posts').select('id, created_at, title, user_id, profiles(full_name), post_reactions(user_id)');
+      if (query) {
+        queryBuilder = queryBuilder.ilike('title', `%${query}%`);
       }
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await queryBuilder.order('created_at', { ascending: false });
+
       if (error) throw error;
 
       const postsWithLikes = data.map(post => ({
@@ -56,35 +58,69 @@ export default function ForumScreen() {
       }));
 
       setPosts(postsWithLikes);
-    } catch (error) {
+    } catch (error: any) {
+      Alert.alert('Erreur', "Impossible de charger les messages du forum.");
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Debounced search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      fetchPosts(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery, fetchPosts]);
+
+  // Real-time subscription
   useFocusEffect(
     useCallback(() => {
       const subscription = supabase
         .channel('forum-posts-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'forum_posts' }, () => {
-          fetchPosts(searchQuery);
+          // Refetch without search query to get the latest list
+          fetchPosts('');
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'post_reactions' }, () => {
+          // Refetch without search query to get the latest list
+          fetchPosts('');
         })
         .subscribe();
-
-      fetchPosts(searchQuery);
 
       return () => {
         supabase.removeChannel(subscription);
       };
-    }, [fetchPosts, searchQuery])
+    }, [fetchPosts])
   );
 
   const handleLike = async (postId: string) => {
-    if (!session) {
-      Alert.alert('Erreur', 'Vous devez être connecté pour aimer un message.');
-      return;
-    }
+    if (!session) return Alert.alert('Erreur', 'Vous devez être connecté pour aimer un message.');
+
+    // Optimistic UI update
+    setPosts(currentPosts => currentPosts.map(p => {
+      if (p.id === postId) {
+        const userHasLiked = p.post_reactions.some(r => r.user_id === session.user.id);
+        if (userHasLiked) {
+          return {
+            ...p,
+            likes_count: p.likes_count - 1,
+            post_reactions: p.post_reactions.filter(r => r.user_id !== session.user.id)
+          };
+        } else {
+          return {
+            ...p,
+            likes_count: p.likes_count + 1,
+            post_reactions: [...p.post_reactions, { user_id: session.user.id }]
+          };
+        }
+      }
+      return p;
+    }));
 
     try {
       const { data: existingLike, error: fetchError } = await supabase
@@ -103,47 +139,26 @@ export default function ForumScreen() {
       }
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
+      // Revert optimistic update on error
+      fetchPosts(searchQuery);
     }
   };
 
   const handleDelete = async (postId: string) => {
     const performDelete = async () => {
-      try {
-        const { error } = await supabase.from('forum_posts').delete().eq('id', postId);
-        if (error) {
-          if (Platform.OS === 'web') {
-            alert(`Erreur: ${error.message}`);
-          } else {
-            Alert.alert('Erreur', error.message);
-          }
-        }
-      } catch (error: any) {
-        if (Platform.OS === 'web') {
-          alert(`Erreur: ${error.message}`);
-        } else {
-          Alert.alert('Erreur', error.message);
-        }
-      }
+      const { error } = await supabase.from('forum_posts').delete().eq('id', postId);
+      if (error) Alert.alert('Erreur', error.message);
+      // UI will update automatically via the real-time subscription
     };
 
-    if (Platform.OS === 'web') {
-      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.')) {
-        performDelete();
-      }
-    } else {
-      Alert.alert(
-        'Supprimer le message',
-        'Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.',
-        [
-          { text: 'Annuler', style: 'cancel' },
-          {
-            text: 'Supprimer',
-            style: 'destructive',
-            onPress: performDelete,
-          },
-        ]
-      );
-    }
+    Alert.alert(
+      'Supprimer le message',
+      'Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: performDelete },
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: PostWithAuthor }) => (

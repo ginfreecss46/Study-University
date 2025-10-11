@@ -3,24 +3,27 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/types/database';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert, Switch, ScrollView, useColorScheme as useRNColorScheme, Image, Vibration, Pressable } from 'react-native';
+import { useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, ActivityIndicator, Alert, Switch, ScrollView, useColorScheme as useRNColorScheme, Image, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Fonts, Spacing, FontSizes } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@/components/ui/Button';
+import { Picker } from '@react-native-picker/picker';
 
 export default function ProfileScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const colorScheme = useRNColorScheme() ?? 'light';
-  const styles = getStyles(colorScheme);
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
   const themeColors = Colors[colorScheme];
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reminderNotifications, setReminderNotifications] = useState(true);
-  const [communityNotifications, setCommunityNotifications] = useState(true);
+  
+  const [assignmentReminder, setAssignmentReminder] = useState('1_day_before');
+  const [forumReplyNotifs, setForumReplyNotifs] = useState(true);
+  const [newGradeNotifs, setNewGradeNotifs] = useState(true);
 
   const fetchProfile = useCallback(async () => {
     if (!session) return;
@@ -28,7 +31,12 @@ export default function ProfileScreen() {
       setLoading(true);
       const { data, error, status } = await supabase.from('profiles').select(`*`).eq('id', session.user.id).single();
       if (error && status !== 406) throw error;
-      if (data) setProfile(data);
+      if (data) {
+        setProfile(data);
+        setAssignmentReminder(data.assignment_reminder_preference || '1_day_before');
+        setForumReplyNotifs(data.forum_reply_notifications_enabled ?? true);
+        setNewGradeNotifs(data.new_grade_notifications_enabled ?? true);
+      }
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
     } finally {
@@ -43,6 +51,14 @@ export default function ProfileScreen() {
     if (error) Alert.alert('Erreur', error.message);
   };
 
+  const updateProfileSetting = async (setting: Partial<Profile>) => {
+    if (!session) return;
+    const { error } = await supabase.from('profiles').update(setting).eq('id', session.user.id);
+    if (error) {
+      Alert.alert('Erreur de sauvegarde', error.message);
+    }
+  };
+
   if (loading) {
     return <ActivityIndicator size="large" color={themeColors.primary} style={{ flex: 1, justifyContent: 'center' }} />;
   }
@@ -53,7 +69,7 @@ export default function ProfileScreen() {
         <View style={styles.headerContent}>
           <View style={styles.avatarContainer}>
             <Image
-              source={require('@/assets/images/icon.png')}
+              source={profile?.avatar_url ? { uri: profile.avatar_url } : require('@/assets/images/icon.png')}
               style={styles.avatar}
             />
             <View style={styles.statusIndicator} />
@@ -77,8 +93,16 @@ export default function ProfileScreen() {
               <ThemedText style={styles.infoText}>Nom: {profile?.full_name || 'N/A'}</ThemedText>
             </View>
             <View style={styles.infoGridItem}>
+              <Feather name="briefcase" size={18} color={themeColors.primary} style={styles.infoIcon} />
+              <ThemedText style={styles.infoText}>Pôle: {profile?.pole || 'N/A'}</ThemedText>
+            </View>
+            <View style={styles.infoGridItem}>
+              <Feather name="book" size={18} color={themeColors.primary} style={styles.infoIcon} />
+              <ThemedText style={styles.infoText}>Filière: {profile?.filiere || 'N/A'}</ThemedText>
+            </View>
+            <View style={styles.infoGridItem}>
               <Feather name="book-open" size={18} color={themeColors.primary} style={styles.infoIcon} />
-              <ThemedText style={styles.infoText}>Majeure: {profile?.major || 'N/A'}</ThemedText>
+              <ThemedText style={styles.infoText}>Option: {profile?.option || 'N/A'}</ThemedText>
             </View>
             <View style={styles.infoGridItem}>
               <Feather name="award" size={18} color={themeColors.primary} style={styles.infoIcon} />
@@ -96,31 +120,58 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.card}>
-          <ThemedText style={styles.cardTitle}>Paramètres</ThemedText>
+          <ThemedText style={styles.cardTitle}>Paramètres de Notification</ThemedText>
+          
+          <View style={styles.settingItemPicker}>
+            <ThemedText>Rappels de devoirs</ThemedText>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={assignmentReminder}
+                onValueChange={(itemValue) => {
+                  setAssignmentReminder(itemValue);
+                  updateProfileSetting({ assignment_reminder_preference: itemValue });
+                }}
+                dropdownIconColor={themeColors.text}
+                style={{ color: themeColors.text }}
+              >
+                <Picker.Item label="2 jours avant" value="2_days_before" />
+                <Picker.Item label="1 jour avant" value="1_day_before" />
+                <Picker.Item label="Le matin même" value="same_day_morning" />
+                <Picker.Item label="1 heure avant" value="1_hour_before" />
+                <Picker.Item label="Jamais" value="none" />
+              </Picker>
+            </View>
+          </View>
+
           <View style={styles.settingItem}>
             <View style={{ flexShrink: 1, marginRight: 10 }}>
-              <ThemedText>Rappels de devoirs</ThemedText>
-              <ThemedText style={styles.settingDescription}>Recevez des notifications pour les devoirs à venir.</ThemedText>
+              <ThemedText>Nouvelle note</ThemedText>
+              <ThemedText style={styles.settingDescription}>Recevoir une alerte quand une note est publiée.</ThemedText>
             </View>
             <Switch 
-              value={reminderNotifications} 
-              onValueChange={setReminderNotifications}
+              value={newGradeNotifs} 
+              onValueChange={(value) => {
+                setNewGradeNotifs(value);
+                updateProfileSetting({ new_grade_notifications_enabled: value });
+              }}
               trackColor={{ false: themeColors.border, true: themeColors.primary }}
-              thumbColor={Colors.dark.text}
-              style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              thumbColor={themeColors.card}
             />
           </View>
+
           <View style={styles.settingItem}>
             <View style={{ flexShrink: 1, marginRight: 10 }}>
-              <ThemedText>Notifications du forum</ThemedText>
-              <ThemedText style={styles.settingDescription}>Soyez informé des nouvelles publications et réponses.</ThemedText>
+              <ThemedText>Réponse à mes posts</ThemedText>
+              <ThemedText style={styles.settingDescription}>Être notifié quand quelqu'un répond à mes posts sur le forum.</ThemedText>
             </View>
             <Switch 
-              value={communityNotifications} 
-              onValueChange={setCommunityNotifications}
+              value={forumReplyNotifs} 
+              onValueChange={(value) => {
+                setForumReplyNotifs(value);
+                updateProfileSetting({ forum_reply_notifications_enabled: value });
+              }}
               trackColor={{ false: themeColors.border, true: themeColors.primary }}
-              thumbColor={Colors.dark.text}
-              style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+              thumbColor={themeColors.card}
             />
           </View>
         </View>
@@ -168,6 +219,14 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     editButton: { padding: Spacing.sm },
     buttonPressed: { opacity: 0.7 },
     settingItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: Spacing.md },
+    settingItemPicker: { marginVertical: Spacing.md },
     settingDescription: { fontSize: FontSizes.caption, color: themeColors.textSecondary, marginTop: Spacing.xs },
+    pickerContainer: {
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      borderRadius: 12,
+      marginTop: Spacing.sm,
+      backgroundColor: themeColors.background,
+    },
   });
 }

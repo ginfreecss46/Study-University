@@ -18,7 +18,9 @@ const getGroupIcon = (groupType: string) => {
   switch (groupType) {
     case 'level':
       return 'users';
-    case 'major':
+    case 'pole':
+      return 'briefcase';
+    case 'filiere':
       return 'book';
     case 'option':
       return 'tag';
@@ -50,7 +52,8 @@ export default function GroupsScreen() {
 
       const userGroups = data.map(item => item.chat_groups).filter(Boolean) as Group[];
       setGroups(userGroups);
-    } catch (error) {
+    } catch (error: any) {
+      Alert.alert("Erreur", "Impossible de charger vos groupes de discussion.");
       console.error("Error fetching groups:", error);
     } finally {
       setLoading(false);

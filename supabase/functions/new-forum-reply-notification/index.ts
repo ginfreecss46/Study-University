@@ -5,16 +5,16 @@ const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 serve(async (req) => {
   try {
-    const supabaseClient = createClient(
+    // Create a Supabase client with the service role key to bypass RLS
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const { record: newReply } = await req.json();
 
     // 1. Get the original post to find the author
-    const { data: post, error: postError } = await supabaseClient
+    const { data: post, error: postError } = await supabaseAdmin
       .from('forum_posts')
       .select('user_id, title')
       .eq('id', newReply.post_id)
@@ -30,23 +30,23 @@ serve(async (req) => {
       });
     }
 
-    // 2. Get the author's push token
-    const { data: authorProfile, error: authorError } = await supabaseClient
+    // 2. Get the author's push token and notification preference
+    const { data: authorProfile, error: authorError } = await supabaseAdmin
       .from('profiles')
-      .select('push_token')
+      .select('push_token, forum_reply_notifications_enabled')
       .eq('id', post.user_id)
       .single();
 
-    if (authorError || !authorProfile || !authorProfile.push_token) {
-      // If no token, we can't do anything
-      return new Response(JSON.stringify({ message: 'Post author does not have a push token.' }), {
+    // If no token, or if notifications are disabled, we can't do anything
+    if (authorError || !authorProfile || !authorProfile.push_token || !authorProfile.forum_reply_notifications_enabled) {
+      return new Response(JSON.stringify({ message: 'Author does not have a push token or has disabled this notification type.' }), {
         headers: { 'Content-Type': 'application/json' },
         status: 200,
       });
     }
     
     // 3. Get the replier's name
-    const { data: replierProfile, error: replierError } = await supabaseClient
+    const { data: replierProfile, error: replierError } = await supabaseAdmin
       .from('profiles')
       .select('full_name')
       .eq('id', newReply.user_id)

@@ -27,7 +27,7 @@ export default function TimetableScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const colorScheme = useRNColorScheme() ?? 'light';
-  const styles = getStyles(colorScheme);
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
   const themeColors = Colors[colorScheme];
 
   const [items, setItems] = useState<{[key: string]: any[]}>({});
@@ -40,16 +40,21 @@ export default function TimetableScreen() {
       const { data: userCourses, error: userCoursesError } = await supabase.from('user_courses').select('course_id').eq('user_id', session.user.id);
       if (userCoursesError) throw userCoursesError;
       const courseIds = userCourses.map(uc => uc.course_id);
-      if (courseIds.length === 0) {
-        setItems({});
-        setLoading(false);
-        return;
-      }
-      const { data: assignments, error: assignmentsError } = await supabase.from('assignments').select('*, courses(title)').in('course_id', courseIds);
-      const { data: schedules, error: schedulesError } = await supabase.from('class_schedules').select('*, courses(title)').in('course_id', courseIds);
-      if (assignmentsError || schedulesError) throw assignmentsError || schedulesError;
+
+      const [assignmentsResult, schedulesResult, eventsResult] = await Promise.all([
+        supabase.from('assignments').select('*, courses(title)').in('course_id', courseIds),
+        supabase.from('class_schedules').select('*, courses(title)').in('course_id', courseIds),
+        supabase.from('user_events').select('*').eq('user_id', session.user.id)
+      ]);
+
+      const { data: assignments, error: assignmentsError } = assignmentsResult;
+      const { data: schedules, error: schedulesError } = schedulesResult;
+      const { data: userEvents, error: eventsError } = eventsResult;
+
+      if (assignmentsError || schedulesError || eventsError) throw assignmentsError || schedulesError || eventsError;
 
       const newItems: {[key: string]: any[]} = {};
+
       assignments?.forEach((assignment: Assignment) => {
         if (assignment.due_date) {
           const dateStr = toDateString(new Date(assignment.due_date));
@@ -57,10 +62,17 @@ export default function TimetableScreen() {
           newItems[dateStr].push({ name: `Devoir: ${assignment.title}`, time: `Pour le ${new Date(assignment.due_date).toLocaleDateString('fr-FR')}`, location: assignment.courses.title, type: 'assignment' });
         }
       });
+
+      userEvents?.forEach((event: UserEvent) => {
+        const dateStr = event.date;
+        if (!newItems[dateStr]) newItems[dateStr] = [];
+        newItems[dateStr].push({ name: event.title, time: `${event.start_time?.slice(0, 5)} - ${event.end_time?.slice(0, 5)}`, location: event.description, type: 'personal' });
+      });
+
       const today = new Date();
       const twoMonthsLater = new Date(today);
       twoMonthsLater.setMonth(today.getMonth() + 2);
-      for (let d = new Date(today); d <= twoMonthsLater; d.setDate(d.getDate() + 1)) {
+      for (let d = new Date(); d <= twoMonthsLater; d.setDate(d.getDate() + 1)) {
         const dateStr = toDateString(d);
         if (!newItems[dateStr]) newItems[dateStr] = [];
         const dayOfWeek = d.getDay();
@@ -70,7 +82,13 @@ export default function TimetableScreen() {
           }
         });
       }
-      setItems(newItems);
+
+      const sortedItems: {[key: string]: any[]} = {};
+      for (const key in newItems) {
+        sortedItems[key] = newItems[key].sort((a, b) => a.time.localeCompare(b.time));
+      }
+
+      setItems(sortedItems);
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
     } finally {
@@ -80,29 +98,32 @@ export default function TimetableScreen() {
 
   useFocusEffect(useCallback(() => { loadCalendarData(); }, [loadCalendarData]));
 
-  const renderItem = (item: any) => (
-    <Pressable style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}>
-      <ThemedText style={styles.itemText}>{item.name}</ThemedText>
-      <ThemedText style={styles.itemTime}>{item.time}</ThemedText>
-      {item.location && <ThemedText style={styles.itemLocation}>{item.location}</ThemedText>}
-    </Pressable>
-  );
+  const renderItem = (item: any) => {
+    const itemColor = item.type === 'assignment' ? themeColors.accent : item.type === 'personal' ? themeColors.secondary : themeColors.primary;
+    return (
+      <Pressable style={({ pressed }) => [styles.item, { borderLeftColor: itemColor }, pressed && styles.itemPressed]}>
+        <ThemedText style={styles.itemText}>{item.name}</ThemedText>
+        <ThemedText style={styles.itemTime}>{item.time}</ThemedText>
+        {item.location && <ThemedText style={styles.itemLocation}>{item.location}</ThemedText>}
+      </Pressable>
+    );
+  };
 
   const renderEmptyData = () => (
     <Animated.View style={styles.emptyDataContainer} layout={Layout.springify().damping(20).stiffness(100)}>
       <Feather name="calendar" size={40} color={themeColors.textSecondary} />
-      <ThemedText style={styles.emptyDataTitle}>Pas de cours cette semaine 🎉</ThemedText>
-      <ThemedText style={styles.emptyDataSubtitle}>Vos journées sont libres pour le moment. Profitez-en !</ThemedText>
+      <ThemedText style={styles.emptyDataTitle}>Rien pour aujourd'hui 🎉</ThemedText>
+      <ThemedText style={styles.emptyDataSubtitle}>Cette journée est libre. Profitez-en ou ajoutez un événement !</ThemedText>
     </Animated.View>
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <ThemedText type="title" style={styles.headerTitle}>Emploi du temps</ThemedText>
-        <Pressable onPress={() => router.push('/manage-schedules')} style={({ pressed }) => [styles.manageButton, pressed && styles.buttonPressed]}>
-          <Feather name="settings" size={20} color={themeColors.primary} />
-          <ThemedText style={styles.manageButtonText}>Gérer</ThemedText>
+        <ThemedText type="title" style={styles.headerTitle}>Agenda</ThemedText>
+        <Pressable onPress={() => router.push('/add-event')} style={({ pressed }) => [styles.manageButton, pressed && styles.buttonPressed]}>
+          <Feather name="plus" size={20} color={themeColors.primary} />
+          <ThemedText style={styles.manageButtonText}>Ajouter</ThemedText>
         </Pressable>
       </View>
       {loading ? (
@@ -114,10 +135,10 @@ export default function TimetableScreen() {
           renderEmptyData={renderEmptyData}
           showClosingKnob={true}
           pastScrollRange={2}
-          futureScrollRange={2}
+          futureScrollRange={6}
           theme={{
             backgroundColor: themeColors.background,
-            calendarBackground: themeColors.background,
+            calendarBackground: themeColors.card,
             dayTextColor: themeColors.text,
             textSectionTitleColor: themeColors.textSecondary,
             selectedDayBackgroundColor: themeColors.primary,

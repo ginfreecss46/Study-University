@@ -5,16 +5,16 @@ const EXPO_PUSH_ENDPOINT = 'https://exp.host/--/api/v2/push/send';
 
 serve(async (req) => {
   try {
-    const supabaseClient = createClient(
+    // Create a Supabase client with the service role key to bypass RLS
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     const { record: newChatMessage } = await req.json();
 
     // 1. Get the sender's profile to get their name
-    const { data: senderProfile, error: senderError } = await supabaseClient
+    const { data: senderProfile, error: senderError } = await supabaseAdmin
       .from('profiles')
       .select('full_name')
       .eq('id', newChatMessage.user_id)
@@ -23,7 +23,7 @@ serve(async (req) => {
     if (senderError) throw senderError;
 
     // 2. Get all members of the group, excluding the sender
-    const { data: groupMembers, error: membersError } = await supabaseClient
+    const { data: groupMembers, error: membersError } = await supabaseAdmin
       .from('group_members')
       .select('user_id')
       .eq('group_id', newChatMessage.group_id)
@@ -34,7 +34,7 @@ serve(async (req) => {
     const recipientIds = groupMembers.map(member => member.user_id);
 
     // 3. Get the push tokens of the recipients
-    const { data: recipients, error: tokensError } = await supabaseClient
+    const { data: recipients, error: tokensError } = await supabaseAdmin
       .from('profiles')
       .select('push_token')
       .in('id', recipientIds)
@@ -52,7 +52,7 @@ serve(async (req) => {
     }
     
     // 4. Get group name for the notification title
-    const { data: group, error: groupError } = await supabaseClient
+    const { data: group, error: groupError } = await supabaseAdmin
       .from('chat_groups')
       .select('name')
       .eq('id', newChatMessage.group_id)

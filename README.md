@@ -96,6 +96,9 @@ yarn start
 
 ---
 
+
+
+
 ## 🚀 Lancer l'application
 
 * Avec Expo Go sur mobile (scanner QR code).

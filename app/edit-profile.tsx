@@ -3,9 +3,10 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, View, useColorScheme as useRNColorScheme } from 'react-native';
+import { TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, View, useColorScheme as useRNColorScheme, Image, Pressable } from 'react-native';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function EditProfileScreen() {
   const { session } = useAuth();
@@ -15,10 +16,14 @@ export default function EditProfileScreen() {
   const themeColors = Colors[colorScheme];
 
   const [fullName, setFullName] = useState('');
-  const [major, setMajor] = useState('');
   const [level, setLevel] = useState('');
   const [university, setUniversity] = useState('');
   const [academicYear, setAcademicYear] = useState('');
+  const [pole, setPole] = useState('');
+  const [filiere, setFiliere] = useState('');
+  const [option, setOption] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [newAvatar, setNewAvatar] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
 
@@ -29,17 +34,20 @@ export default function EditProfileScreen() {
         setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('*, profile_last_updated_at')
+          .select('*')
           .eq('id', session.user.id)
           .single();
 
         if (error) throw error;
         if (data) {
           setFullName(data.full_name || '');
-          setMajor(data.major || '');
           setLevel(data.level || '');
           setUniversity(data.university || '');
           setAcademicYear(data.academic_year || '');
+          setPole(data.pole || '');
+          setFiliere(data.filiere || '');
+          setOption(data.option || '');
+          setAvatarUrl(data.avatar_url || null);
 
           if (data.profile_last_updated_at) {
             const lastUpdate = new Date(data.profile_last_updated_at);
@@ -62,19 +70,48 @@ export default function EditProfileScreen() {
     fetchProfile();
   }, [session]);
 
+  const handlePickAvatar = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'image/*',
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setNewAvatar(result.assets[0]);
+      setAvatarUrl(result.assets[0].uri);
+    }
+  };
+
   const handleUpdate = async () => {
     if (!session) return;
 
     try {
       setLoading(true);
+      let newAvatarUrl = avatarUrl;
+
+      if (newAvatar) {
+        const file = newAvatar;
+        const fileName = `${session.user.id}_${Date.now()}.${file.name.split('.').pop()}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, file, { upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+        newAvatarUrl = urlData.publicUrl;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ 
           full_name: fullName, 
-          major, 
           level, 
           university, 
           academic_year: academicYear, 
+          pole,
+          filiere,
+          option,
+          avatar_url: newAvatarUrl,
           profile_last_updated_at: new Date().toISOString() 
         })
         .eq('id', session.user.id);
@@ -99,14 +136,15 @@ export default function EditProfileScreen() {
       <ThemedText type="title" style={styles.title}>Modifier le profil</ThemedText>
       {canEdit ? (
         <View style={styles.card}>
+          <View style={styles.avatarContainer}>
+            <Image source={{ uri: avatarUrl || undefined }} style={styles.avatar} />
+            <Pressable style={styles.avatarEditButton} onPress={handlePickAvatar}>
+              <ThemedText style={{color: 'white'}}>Changer</ThemedText>
+            </Pressable>
+          </View>
+
           <ThemedText style={styles.label}>Nom complet</ThemedText>
           <TextInput value={fullName} onChangeText={setFullName} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
-
-          <ThemedText style={styles.label}>Majeure</ThemedText>
-          <TextInput value={major} onChangeText={setMajor} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
-
-          <ThemedText style={styles.label}>Niveau</ThemedText>
-          <TextInput value={level} onChangeText={setLevel} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Université</ThemedText>
           <TextInput value={university} onChangeText={setUniversity} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
@@ -114,8 +152,17 @@ export default function EditProfileScreen() {
           <ThemedText style={styles.label}>Année académique</ThemedText>
           <TextInput value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
+          <ThemedText style={styles.label}>Pôle</ThemedText>
+          <TextInput value={pole} onChangeText={setPole} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+
+          <ThemedText style={styles.label}>Filière</ThemedText>
+          <TextInput value={filiere} onChangeText={setFiliere} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+
           <ThemedText style={styles.label}>Option</ThemedText>
-          <TextInput value={majorOption} onChangeText={setMajorOption} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+          <TextInput value={option} onChangeText={setOption} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+
+          <ThemedText style={styles.label}>Niveau</ThemedText>
+          <TextInput value={level} onChangeText={setLevel} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <Button title={loading ? 'Enregistrement...' : 'Enregistrer'} onPress={handleUpdate} disabled={loading} />
           <View style={{ marginTop: Spacing.sm }}>
@@ -176,6 +223,25 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
       fontSize: FontSizes.body,
       color: themeColors.textSecondary,
       padding: Spacing.lg,
+    },
+    avatarContainer: {
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+    },
+    avatar: {
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: themeColors.border,
+    },
+    avatarEditButton: {
+      position: 'absolute',
+      bottom: 0,
+      right: 100,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius: 12,
     },
   });
 }

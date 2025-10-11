@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
-import { View, TextInput, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, useColorScheme, Pressable } from "react-native";
+import { View, TextInput, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, useColorScheme, Pressable, Alert, Image } from "react-native";
 import { Colors, Spacing, FontSizes } from "@/constants/theme";
 import { Feather } from '@expo/vector-icons';
 import { useToast } from "@/context/ToastContext";
@@ -82,7 +82,8 @@ export default function ChatScreen() {
 
       if (error) throw error;
       setMessages(data || []);
-    } catch (error) {
+    } catch (error: any) {
+      Alert.alert("Erreur", "Impossible de charger les messages.");
       console.error("Error fetching messages:", error);
     } finally {
       setLoading(false);
@@ -133,7 +134,11 @@ export default function ChatScreen() {
       <View style={[styles.messageRow, isMine ? styles.myMessageRow : styles.otherMessageRow]}>
         {!isMine && (
           <View style={styles.avatar}>
-            <Feather name="user" size={20} color={themeColors.textSecondary} />
+            {item.profiles?.avatar_url ? (
+              <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Feather name="user" size={20} color={themeColors.textSecondary} />
+            )}
           </View>
         )}
         <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.otherMessage]}>
@@ -183,7 +188,8 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     messageRow: { flexDirection: 'row', marginBottom: Spacing.lg, alignItems: 'flex-end' },
     myMessageRow: { justifyContent: 'flex-end' },
     otherMessageRow: { justifyContent: 'flex-start' },
-    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.border, marginRight: Spacing.sm, justifyContent: 'center', alignItems: 'center' },
+    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: themeColors.border, marginRight: Spacing.sm, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+    avatarImage: { width: '100%', height: '100%' },
     messageBubble: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: 20, maxWidth: '80%' },
     myMessage: { backgroundColor: themeColors.primary, borderBottomRightRadius: 4 },
     otherMessage: { backgroundColor: themeColors.card, borderBottomLeftRadius: 4 },

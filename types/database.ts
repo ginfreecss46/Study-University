@@ -2,10 +2,17 @@ export type Profile = {
   id: string; // uuid
   updated_at?: string; // timestamp with time zone
   full_name?: string;
-  major?: string;
   level?: string;
   university?: string;
   academic_year?: string;
+  avatar_url?: string;
+  profile_last_updated_at?: string; // timestamp with time zone
+  pole?: string;
+  filiere?: string;
+  option?: string;
+  assignment_reminder_preference?: string;
+  forum_reply_notifications_enabled?: boolean;
+  new_grade_notifications_enabled?: boolean;
 };
 
 export type Course = {
@@ -72,4 +79,15 @@ export type ClassSchedule = {
   end_time: string; // time
   location?: string;
   courses: Pick<Course, 'title'>; // Relation from query
+};
+
+export type UserEvent = {
+  id: string; // uuid
+  user_id: string; // uuid
+  title: string;
+  description?: string;
+  date: string; // date
+  start_time?: string; // time
+  end_time?: string; // time
+  created_at?: string; // timestamp with time zone
 };

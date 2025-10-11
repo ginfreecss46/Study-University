@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, useColorScheme } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -15,8 +15,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
+  const colorScheme = useColorScheme() ?? 'light';
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
 
   async function signInWithEmail() {
+    if (!email || !password) {
+      Alert.alert('Champs requis', 'Veuillez remplir tous les champs.');
+      showToast('Veuillez remplir tous les champs', 'error');
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
@@ -33,10 +40,10 @@ export default function Login() {
       <ThemedView style={styles.container}>
         <View style={{flex: 1, justifyContent: 'center'}}>
           <View style={styles.logoContainer}>
-            <Feather name="book-open" size={60} color={Colors.light.primary} />
+            <Feather name="book-open" size={60} color={Colors[colorScheme].primary} />
           </View>
 
-          <ThemedText type="title" style={styles.header}>Study Loock</ThemedText>
+          <ThemedText type="title" style={styles.header}>Study University</ThemedText>
           <ThemedText style={styles.subtitle}>Ravi de vous revoir !</ThemedText>
 
           <View style={styles.card}>
@@ -47,7 +54,7 @@ export default function Login() {
               autoCapitalize="none"
               keyboardType="email-address"
               style={styles.input}
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={Colors[colorScheme].textSecondary}
             />
             <TextInput
               placeholder="Mot de passe"
@@ -55,7 +62,7 @@ export default function Login() {
               onChangeText={setPassword}
               secureTextEntry
               style={styles.input}
-              placeholderTextColor={Colors.light.textSecondary}
+              placeholderTextColor={Colors[colorScheme].textSecondary}
             />
             <Button title={loading ? 'Connexion...' : 'Se connecter'} onPress={signInWithEmail} disabled={loading} />
           </View>
@@ -77,32 +84,35 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  keyboardView: { flex: 1 },
-  container: { flex: 1, padding: Spacing.lg, backgroundColor: Colors.light.background },
-  logoContainer: { alignItems: 'center', marginBottom: Spacing.xl },
-  header: { fontSize: 36, fontWeight: 'bold', textAlign: 'center', marginBottom: Spacing.sm, color: Colors.light.primary, fontFamily: Fonts.rounded },
-  subtitle: { textAlign: 'center', marginBottom: Spacing.xl, fontSize: FontSizes.body, color: Colors.light.textSecondary },
-  card: {
-    backgroundColor: Colors.light.card,
-    borderRadius: 16,
-    padding: Spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  input: { height: 50, backgroundColor: Colors.light.background, borderWidth: 1, borderColor: Colors.light.border, borderRadius: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.md, fontSize: FontSizes.body },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.lg },
-  divider: { flex: 1, height: 1, backgroundColor: Colors.light.border },
-  dividerText: { marginHorizontal: Spacing.md, color: Colors.light.textSecondary },
-  footer: {
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: FontSizes.caption,
-    color: Colors.light.textSecondary,
-  },
-});
+const getStyles = (colorScheme: 'light' | 'dark') => {
+  const themeColors = Colors[colorScheme];
+  return StyleSheet.create({
+    keyboardView: { flex: 1, backgroundColor: themeColors.background },
+    container: { flex: 1, padding: Spacing.lg, backgroundColor: themeColors.background },
+    logoContainer: { alignItems: 'center', marginBottom: Spacing.xl },
+    header: { fontSize: 36, fontWeight: 'bold', textAlign: 'center', marginBottom: Spacing.sm, color: themeColors.primary, fontFamily: Fonts.rounded },
+    subtitle: { textAlign: 'center', marginBottom: Spacing.xl, fontSize: FontSizes.body, color: themeColors.textSecondary },
+    card: {
+      backgroundColor: themeColors.card,
+      borderRadius: 16,
+      padding: Spacing.lg,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.05,
+      shadowRadius: 12,
+      elevation: 5,
+    },
+    input: { height: 50, backgroundColor: themeColors.background, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.md, fontSize: FontSizes.body, color: themeColors.text },
+    dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.lg },
+    divider: { flex: 1, height: 1, backgroundColor: themeColors.border },
+    dividerText: { marginHorizontal: Spacing.md, color: themeColors.textSecondary },
+    footer: {
+      paddingVertical: Spacing.md,
+      alignItems: 'center',
+    },
+    footerText: {
+      fontSize: FontSizes.caption,
+      color: themeColors.textSecondary,
+    },
+  });
+};

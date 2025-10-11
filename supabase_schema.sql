@@ -58,25 +58,29 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     AS $
 DECLARE
   level_group_id UUID;
-  major_group_id UUID;
+  pole_group_id UUID;
+  filiere_group_id UUID;
   option_group_id UUID;
-  poly_it_group_id UUID;
-  commerce_juridique_group_id UUID;
   user_full_name TEXT;
-  user_major TEXT;
+  user_pole TEXT;
+  user_filiere TEXT;
+  user_option TEXT;
 BEGIN
   -- Get user's metadata
   user_full_name := new.raw_user_meta_data->>'full_name';
-  user_major := new.raw_user_meta_data->>'major';
+  user_pole := new.raw_user_meta_data->>'pole';
+  user_filiere := new.raw_user_meta_data->>'filiere';
+  user_option := new.raw_user_meta_data->>'option';
 
   -- Insert into profiles
-  insert into public.profiles (id, full_name, major, level, major_option)
+  insert into public.profiles (id, full_name, level, pole, filiere, option)
   values (
     new.id,
     user_full_name,
-    user_major,
     new.raw_user_meta_data->>'level',
-    new.raw_user_meta_data->>'major_option'
+    user_pole,
+    user_filiere,
+    user_option
   );
 
   -- Find or create level group
@@ -85,47 +89,39 @@ BEGIN
   ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
   RETURNING id INTO level_group_id;
 
-  -- Find or create major group
-  INSERT INTO public.chat_groups (name, group_type, major)
-  VALUES (user_major, 'major', user_major)
+  -- Find or create pole group
+  INSERT INTO public.chat_groups (name, group_type)
+  VALUES (user_pole, 'pole')
   ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
-  RETURNING id INTO major_group_id;
+  RETURNING id INTO pole_group_id;
+
+  -- Find or create filiere group
+  INSERT INTO public.chat_groups (name, group_type, filiere)
+  VALUES (user_filiere, 'filiere', user_filiere)
+  ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+  RETURNING id INTO filiere_group_id;
 
   -- Find or create option group
-  INSERT INTO public.chat_groups (name, group_type, major, major_option)
-  VALUES (user_major || ' - ' || new.raw_user_meta_data->>'major_option', 'option', user_major, new.raw_user_meta_data->>'major_option')
+  INSERT INTO public.chat_groups (name, group_type, option)
+  VALUES (user_option, 'option', user_option)
   ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
   RETURNING id INTO option_group_id;
 
-  -- Add user to the three base groups
+  -- Add user to the groups
   INSERT INTO public.group_members (group_id, user_id)
-  VALUES (level_group_id, new.id), (major_group_id, new.id), (option_group_id, new.id)
+  VALUES (level_group_id, new.id), (pole_group_id, new.id), (filiere_group_id, new.id), (option_group_id, new.id)
   ON CONFLICT (group_id, user_id) DO NOTHING;
 
-  -- Post system message to base groups
+  -- Post system message to groups
   INSERT INTO public.chat_messages (group_id, content, message_type)
   VALUES
     (level_group_id, user_full_name || ' a rejoint le groupe.', 'system'),
-    (major_group_id, user_full_name || ' a rejoint le groupe.', 'system'),
+    (pole_group_id, user_full_name || ' a rejoint le groupe.', 'system'),
+    (filiere_group_id, user_full_name || ' a rejoint le groupe.', 'system'),
     (option_group_id, user_full_name || ' a rejoint le groupe.', 'system');
 
-  -- Handle "Pôle Technique" super group
-  IF LOWER(user_major) IN (
-    'génie informatique', 'réseaux télécoms & sécurité', 'développement informatique', 'génie logiciel', 'intelligence artificielle', 'génie mécanique', 'maintenance industrielle', 'électromécanique', 'mécatronique', 'génie électrique', 'électrotechnique', 'automatisme & instrumentation', 'automatisme & informatique industrielle', 'génie industriel', 'génie des procédés/génie chimie', 'génie des procédés alimentaires', 'qualité, hygiène, sécurité & environnement (qhse)', 'raffinage & pétrochimie', 'génie civil', 'bâtiment & travaux publics', 'architecture & urbanisme', 'géomètre & topographe', 'géosciences', 'mines & carrières', 'génie pétrolier', 'génie géologique des hydrosystèmes', 'géophysique', 'géotechnique & géologie appliquée', 'gestion de l''environnement', 'polytechnique'
-  ) THEN
-    INSERT INTO public.chat_groups (name, group_type) VALUES ('Pôle Technique', 'supergroup') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id INTO poly_it_group_id;
-    INSERT INTO public.group_members (group_id, user_id) VALUES (poly_it_group_id, new.id) ON CONFLICT (group_id, user_id) DO NOTHING;
-    INSERT INTO public.chat_messages (group_id, content, message_type) VALUES (poly_it_group_id, user_full_name || ' a rejoint le groupe.', 'system');
-  END IF;
-
-  -- Handle "Pôle Commerce & Juridique" super group
-  IF LOWER(user_major) IN (
-    'management commercial opérationnel', 'comptabilité & gestion d''entreprise', 'banque finances & assurances', 'gestion des ressources humaines', 'transport logistique', 'transit & commerce international', 'comptabilité & finances', 'business trade & marketing', 'marketing digital & communication', 'économie pétrolière', 'assistant de manager', 'droit des affaires', 'diplomatie & relations internationales', 'droit privé', 'droit public', 'droit pénal', 'sciences politiques', 'droit', 'commerce', 'gestion', 'économie'
-  ) THEN
-    INSERT INTO public.chat_groups (name, group_type) VALUES ('Pôle Commerce & Juridique', 'supergroup') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id INTO commerce_juridique_group_id;
-    INSERT INTO public.group_members (group_id, user_id) VALUES (commerce_juridique_group_id, new.id) ON CONFLICT (group_id, user_id) DO NOTHING;
-    INSERT INTO public.chat_messages (group_id, content, message_type) VALUES (commerce_juridique_group_id, user_full_name || ' a rejoint le groupe.', 'system');
-  END IF;
+  -- NOTE: The super group logic based on the old 'major' field is now removed.
+  -- This can be re-added later based on one of the new fields if needed.
 
   return new;
 end;
@@ -248,14 +244,20 @@ ALTER TABLE "public"."post_reactions" OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" NOT NULL,
     "full_name" "text",
-    "major" "text" NOT NULL,
-    "level" "text" NOT NULL,
+    "level" "text",
     "updated_at" timestamp with time zone DEFAULT "now"(),
     "university" "text",
     "academic_year" "text",
-    "major_option" "text" NOT NULL,
     "role" "text" DEFAULT 'user'::"text" NOT NULL,
-    "push_token" "text"
+    "push_token" "text",
+    "avatar_url" "text",
+    "profile_last_updated_at" timestamp with time zone,
+    "pole" "text",
+    "filiere" "text",
+    "option" "text",
+    "assignment_reminder_preference" "text" DEFAULT '1_day_before',
+    "forum_reply_notifications_enabled" boolean DEFAULT true,
+    "new_grade_notifications_enabled" boolean DEFAULT true
 );
 
 
@@ -994,8 +996,29 @@ CREATE TABLE public.chat_messages (
 
 ALTER TABLE ONLY public.chat_groups ADD CONSTRAINT chat_groups_name_key UNIQUE (name);
 
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS profile_last_updated_at TIMESTAMPTZ;
 
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+
 
 ALTER TABLE public.chat_messages ALTER COLUMN user_id DROP NOT NULL;
+
+-- User Events Table
+CREATE TABLE IF NOT EXISTS "public"."user_events" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL REFERENCES "auth"."users"("id") ON DELETE CASCADE,
+    "title" "text" NOT NULL,
+    "description" "text",
+    "date" "date" NOT NULL,
+    "start_time" time without time zone,
+    "end_time" time without time zone,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+ALTER TABLE "public"."user_events" ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own events" ON "public"."user_events" FOR SELECT USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can insert their own events" ON "public"."user_events" FOR INSERT WITH CHECK (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can update their own events" ON "public"."user_events" FOR UPDATE USING (("auth"."uid"() = "user_id"));
+CREATE POLICY "Users can delete their own events" ON "public"."user_events" FOR DELETE USING (("auth"."uid"() = "user_id"));
+
+ALTER TABLE ONLY "public"."user_events"
+    ADD CONSTRAINT "user_events_pkey" PRIMARY KEY ("id");

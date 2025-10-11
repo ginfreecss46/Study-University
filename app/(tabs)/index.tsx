@@ -2,7 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { Assignment, Profile, ClassSchedule } from "@/types/database";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { ScrollView, StyleSheet, ActivityIndicator, View, RefreshControl, useColorScheme as useRNColorScheme, Animated, Pressable } from "react-native";
 import { FontAwesome, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -13,16 +13,77 @@ const quickActions = [
   { title: "Matières", icon: "book", route: "/courses" },
   { title: "Devoirs", icon: "check-square-o", route: "/assignments" },
   { title: "Entraide", icon: "users", route: "/forum" },
+  { title: "Documents", icon: "folder-o", route: "/documents" },
   { title: "Groupes", icon: "comments-o", route: "/groups" },
 ];
 
 type UpcomingClass = ClassSchedule & { courses: { title: string } };
 
+const DynamicHeaderMessage = ({ isNewUser, upcomingClass, assignments, profile, styles }) => {
+  if (isNewUser) {
+    return (
+      <ThemedText style={styles.headerGreeting}>
+        Bienvenue dans Study Loock ! Moi, KANG JINHUYK, vous remercie pour l'installation. J'espère que l'application sera utilisée.
+      </ThemedText>
+    );
+  }
+
+  if (upcomingClass && upcomingClass.courses) {
+    const [hours, minutes] = upcomingClass.start_time.split(':');
+    const startTime = new Date();
+    startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    
+    const now = new Date();
+    const diffMinutes = (startTime.getTime() - now.getTime()) / 60000;
+
+    if (diffMinutes > 0 && diffMinutes <= 30) {
+      return (
+        <ThemedText style={styles.headerGreeting}>
+          <Feather name="clock" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+          Votre cours de {upcomingClass.courses.title} commence dans {Math.round(diffMinutes)} minutes !
+        </ThemedText>
+      );
+    }
+  }
+
+  if (assignments && assignments.length > 0) {
+    const nextAssignment = assignments[0];
+    const dueDate = new Date(nextAssignment.due_date);
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+
+    if (dueDate.toDateString() === today.toDateString()) {
+      return (
+        <ThemedText style={styles.headerGreeting}>
+          <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+          Rappel : Le devoir "{nextAssignment.title}" est à rendre aujourd'hui !
+        </ThemedText>
+      );
+    }
+    if (dueDate.toDateString() === tomorrow.toDateString()) {
+      return (
+        <ThemedText style={styles.headerGreeting}>
+          <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+          Rappel : Le devoir "{nextAssignment.title}" est à rendre demain.
+        </ThemedText>
+      );
+    }
+  }
+
+  return (
+    <ThemedText style={styles.headerGreeting}>
+      Bonjour, {profile?.full_name || 'Étudiant'} !
+      <Feather name="smile" size={24} color={Colors.dark.text} style={{ marginLeft: 8 }} />
+    </ThemedText>
+  );
+};
+
 export default function HomeScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const colorScheme = useRNColorScheme() ?? 'light';
-  const styles = getStyles(colorScheme);
+  const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -34,13 +95,14 @@ export default function HomeScreen() {
   const shimmerAnim = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
-    Animated.timing(animatedValue, {
+    const animation = Animated.timing(animatedValue, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
-    }).start();
+    });
+    animation.start();
 
-    Animated.loop(
+    const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(shimmerAnim, {
           toValue: 1,
@@ -53,7 +115,8 @@ export default function HomeScreen() {
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+    loop.start();
 
     const checkNewUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -67,19 +130,31 @@ export default function HomeScreen() {
       }
     };
     checkNewUser();
+
+    return () => {
+      animation.stop();
+      loop.stop();
+    };
   }, []);
 
   const fetchData = useCallback(async () => {
     if (!session) return;
     try {
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      // Fetch profile and user courses in parallel
+      const [profileResult, userCoursesResult] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('user_courses').select('course_id').eq('user_id', session.user.id)
+      ]);
+
+      const { data: profileData } = profileResult;
       setProfile(profileData);
 
-      const { data: userCourses, error: userCoursesError } = await supabase.from("user_courses").select("course_id").eq("user_id", session.user.id);
+      const { data: userCourses, error: userCoursesError } = userCoursesResult;
       if (userCoursesError) throw userCoursesError;
       if (!userCourses || userCourses.length === 0) {
         setAssignments([]);
         setUpcomingClass(null);
+        setLoading(false); // Make sure to stop loading
         return;
       }
       const courseIds = userCourses.map((uc) => uc.course_id);
@@ -87,23 +162,20 @@ export default function HomeScreen() {
       const today = new Date();
       const oneWeekFromNow = new Date();
       oneWeekFromNow.setDate(today.getDate() + 7);
-      
-      const { data: assignmentsData, error: assignmentsError } = await supabase.from("assignments").select("*, courses(title)").in("course_id", courseIds).gte("due_date", today.toISOString()).lte("due_date", oneWeekFromNow.toISOString()).order("due_date", { ascending: true });
+      const dayOfWeek = today.getDay();
+      const currentTime = today.toTimeString().split(' ')[0];
+
+      // Fetch assignments and next class in parallel
+      const [assignmentsResult, nextClassResult] = await Promise.all([
+        supabase.from("assignments").select("*, courses(title)").in("course_id", courseIds).gte("due_date", today.toISOString()).lte("due_date", oneWeekFromNow.toISOString()).order("due_date", { ascending: true }),
+        supabase.from('class_schedules').select('*, courses(title)').in('course_id', courseIds).eq('day_of_week', dayOfWeek).gte('start_time', currentTime).order('start_time', { ascending: true }).limit(1).single()
+      ]);
+
+      const { data: assignmentsData, error: assignmentsError } = assignmentsResult;
       if (assignmentsError) throw assignmentsError;
       setAssignments(assignmentsData || []);
 
-      const dayOfWeek = today.getDay();
-      const currentTime = today.toTimeString().split(' ')[0];
-      const { data: nextClassData, error: nextClassError } = await supabase
-        .from('class_schedules')
-        .select('*, courses(title)')
-        .in('course_id', courseIds)
-        .eq('day_of_week', dayOfWeek)
-        .gte('start_time', currentTime)
-        .order('start_time', { ascending: true })
-        .limit(1)
-        .single();
-      
+      const { data: nextClassData, error: nextClassError } = nextClassResult;
       if (nextClassError && nextClassError.code !== 'PGRST116') {
         throw nextClassError;
       }
@@ -127,66 +199,6 @@ export default function HomeScreen() {
   }, [fetchData]);
 
   const themeColors = Colors[colorScheme];
-
-  const DynamicHeaderMessage = () => {
-    if (isNewUser) {
-      return (
-        <ThemedText style={styles.headerGreeting}>
-          Bienvenue dans Study Loock ! Moi, KANG JINHUYK, vous remercie pour l'installation. J'espère que l'application sera utilisée.
-        </ThemedText>
-      );
-    }
-
-    if (upcomingClass && upcomingClass.courses) {
-      const [hours, minutes] = upcomingClass.start_time.split(':');
-      const startTime = new Date();
-      startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      
-      const now = new Date();
-      const diffMinutes = (startTime.getTime() - now.getTime()) / 60000;
-
-      if (diffMinutes > 0 && diffMinutes <= 30) {
-        return (
-          <ThemedText style={styles.headerGreeting}>
-            <Feather name="clock" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-            Votre cours de {upcomingClass.courses.title} commence dans {Math.round(diffMinutes)} minutes !
-          </ThemedText>
-        );
-      }
-    }
-
-    if (assignments && assignments.length > 0) {
-      const nextAssignment = assignments[0];
-      const dueDate = new Date(nextAssignment.due_date);
-      const today = new Date();
-      const tomorrow = new Date();
-      tomorrow.setDate(today.getDate() + 1);
-
-      if (dueDate.toDateString() === today.toDateString()) {
-        return (
-          <ThemedText style={styles.headerGreeting}>
-            <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-            Rappel : Le devoir "{nextAssignment.title}" est à rendre aujourd'hui !
-          </ThemedText>
-        );
-      }
-      if (dueDate.toDateString() === tomorrow.toDateString()) {
-        return (
-          <ThemedText style={styles.headerGreeting}>
-            <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-            Rappel : Le devoir "{nextAssignment.title}" est à rendre demain.
-          </ThemedText>
-        );
-      }
-    }
-
-    return (
-      <ThemedText style={styles.headerGreeting}>
-        Bonjour, {profile?.full_name || 'Étudiant'} !
-        <Feather name="smile" size={24} color={Colors.dark.text} style={{ marginLeft: 8 }} />
-      </ThemedText>
-    );
-  };
 
   if (loading) {
     return <ActivityIndicator size="large" color={themeColors.primary} style={{ flex: 1, justifyContent: 'center' }} />;
@@ -212,7 +224,7 @@ export default function HomeScreen() {
           styles.headerContent,
           { opacity: animatedValue, transform: [{ translateY: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }
         ]}>
-          <DynamicHeaderMessage />
+          <DynamicHeaderMessage isNewUser={isNewUser} upcomingClass={upcomingClass} assignments={assignments} profile={profile} styles={styles} />
         </Animated.View>
       </LinearGradient>
 

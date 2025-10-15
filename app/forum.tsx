@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useState, useCallback, useEffect } from 'react';
-import { FlatList, StyleSheet, ActivityIndicator, View, TextInput, useColorScheme as useRNColorScheme, Pressable, Alert, Platform } from 'react-native';
+import { FlatList, StyleSheet, ActivityIndicator, View, TextInput, useColorScheme as useRNColorScheme, Pressable, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 
@@ -44,17 +44,39 @@ export default function ForumScreen() {
   const fetchPosts = useCallback(async (query: string) => {
     try {
       setLoading(true);
-      let queryBuilder = supabase.from('forum_posts').select('id, created_at, title, user_id, profiles(full_name), post_reactions(user_id)');
+      let queryBuilder = supabase.from('forum_posts').select('id, created_at, title, user_id, profiles(full_name)');
       if (query) {
         queryBuilder = queryBuilder.ilike('title', `%${query}%`);
       }
-      const { data, error } = await queryBuilder.order('created_at', { ascending: false });
+      const { data: postsData, error: postsError } = await queryBuilder.order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (postsError) throw postsError;
 
-      const postsWithLikes = data.map(post => ({
-        ...post,
-        likes_count: post.post_reactions?.length || 0,
+      if (!postsData) {
+        setPosts([]);
+        return;
+      }
+
+      const postsWithLikes = await Promise.all(postsData.map(async (post) => {
+        const { data: reactionsData, error: reactionsError } = await supabase
+          .from('post_reactions')
+          .select('user_id')
+          .eq('post_id', post.id);
+        
+        if (reactionsError) {
+          console.error('Error fetching reactions:', reactionsError);
+          return {
+            ...post,
+            likes_count: 0,
+            post_reactions: [],
+          };
+        }
+
+        return {
+          ...post,
+          likes_count: reactionsData.length,
+          post_reactions: reactionsData,
+        };
       }));
 
       setPosts(postsWithLikes);
@@ -189,7 +211,7 @@ export default function ForumScreen() {
 
   return (
     <View style={styles.container}>
-      <ThemedText type="title" style={styles.header}>Forum d'entraide</ThemedText>
+      <ThemedText type="title" style={styles.header}>Forum d&apos;entraide</ThemedText>
       <View style={styles.searchContainer}>
         <Feather name="search" size={20} color={themeColors.icon} style={styles.searchIcon} />
         <TextInput

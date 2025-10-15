@@ -29,7 +29,7 @@ export default function AddAssignmentScreen() {
   useEffect(() => {
     const fetchUserCourses = async () => {
       if (!session) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_courses')
         .select('courses(*)')
         .eq('user_id', session.user.id);
@@ -128,7 +128,7 @@ export default function AddAssignmentScreen() {
           placeholderTextColor={themeColors.textSecondary}
         />
 
-        <ThemedText style={styles.label}>Date d'échéance</ThemedText>
+        <ThemedText style={styles.label}>Date d&apos;échéance</ThemedText>
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
           <ThemedText style={{ color: themeColors.text }}>{dueDate.toLocaleDateString('fr-FR')}</ThemedText>
         </TouchableOpacity>

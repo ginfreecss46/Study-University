@@ -55,7 +55,7 @@ export default function EditPostScreen() {
       setLoading(false);
     };
     fetchData();
-  }, [id, session]);
+  }, [id, session, router]);
 
   const handleUpdate = async () => {
     if (!id || !session || session.user.id !== originalUserId) return Alert.alert('Erreur', 'Action non autorisée.');

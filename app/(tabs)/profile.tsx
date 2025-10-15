@@ -6,7 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, Switch, ScrollView, useColorScheme as useRNColorScheme, Image, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { Colors, Fonts, Spacing, FontSizes } from '@/constants/theme';
+import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from '@/components/ui/Button';
 import { Picker } from '@react-native-picker/picker';
@@ -162,7 +162,7 @@ export default function ProfileScreen() {
           <View style={styles.settingItem}>
             <View style={{ flexShrink: 1, marginRight: 10 }}>
               <ThemedText>Réponse à mes posts</ThemedText>
-              <ThemedText style={styles.settingDescription}>Être notifié quand quelqu'un répond à mes posts sur le forum.</ThemedText>
+              <ThemedText style={styles.settingDescription}>Être notifié quand quelqu&apos;un répond à mes posts sur le forum.</ThemedText>
             </View>
             <Switch 
               value={forumReplyNotifs} 

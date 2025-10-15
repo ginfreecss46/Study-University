@@ -27,7 +27,7 @@ export default function AddPostScreen() {
   useEffect(() => {
     const fetchUserCourses = async () => {
       if (!session) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_courses')
         .select('courses(*)')
         .eq('user_id', session.user.id);
@@ -69,13 +69,13 @@ export default function AddPostScreen() {
         console.log('Fetching file from URI:', file.uri);
         const response = await fetch(file.uri);
         console.log('File fetched');
-        const blob = await response.blob();
-        console.log('Blob created');
+        const arrayBuffer = await response.arrayBuffer();
+        console.log('ArrayBuffer created');
 
         console.log('Uploading to Supabase Storage');
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('documents')
-          .upload(filePath, blob, {
+          .upload(filePath, arrayBuffer, {
             contentType: file.mimeType || 'application/octet-stream',
             upsert: false,
           });

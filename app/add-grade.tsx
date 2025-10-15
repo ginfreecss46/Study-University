@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Assignment } from '@/types/database';
@@ -32,7 +32,7 @@ export default function AddGradeScreen() {
 
       const courseIds = userCourses.map((uc) => uc.course_id);
 
-      const { data: assignmentsData, error: assignmentsError } = await supabase
+      const { data: assignmentsData } = await supabase
         .from('assignments')
         .select('*')
         .in('course_id', courseIds);

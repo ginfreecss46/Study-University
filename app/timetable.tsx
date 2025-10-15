@@ -112,7 +112,7 @@ export default function TimetableScreen() {
   const renderEmptyData = () => (
     <Animated.View style={styles.emptyDataContainer} layout={Layout.springify().damping(20).stiffness(100)}>
       <Feather name="calendar" size={40} color={themeColors.textSecondary} />
-      <ThemedText style={styles.emptyDataTitle}>Rien pour aujourd'hui 🎉</ThemedText>
+      <ThemedText style={styles.emptyDataTitle}>Rien pour aujourd&apos;hui 🎉</ThemedText>
       <ThemedText style={styles.emptyDataSubtitle}>Cette journée est libre. Profitez-en ou ajoutez un événement !</ThemedText>
     </Animated.View>
   );

@@ -55,12 +55,12 @@ export default function UploadDocumentScreen() {
       const file = selectedFile.assets[0];
       
       const response = await fetch(file.uri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
 
       const filePath = `public/${selectedCourse || 'general'}/${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from('documents')
-        .upload(filePath, blob, {
+        .upload(filePath, arrayBuffer, {
           upsert: true,
           contentType: file.mimeType,
         });

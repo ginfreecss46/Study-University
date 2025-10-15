@@ -9,7 +9,6 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '@/constants/theme';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
@@ -50,12 +49,8 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (loading) return;
-
-    SplashScreen.hideAsync();
-
     const inAuthGroup = segments[0] === '(auth)';
     const isAtRoot = segments.length === 0;
-
     if (session && isAtRoot) {
       router.replace('/(tabs)');
     } else if (!session && !inAuthGroup) {
@@ -63,11 +58,10 @@ function RootLayoutNav() {
     } else if (session && inAuthGroup) {
       router.replace('/');
     }
-  }, [session, loading, segments]);
+    SplashScreen.hideAsync();
+  }, [session, loading, segments, router]);
 
-  if (loading) {
-    return null;
-  }
+  
 
   return (
     <Stack

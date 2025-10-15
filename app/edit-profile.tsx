@@ -90,10 +90,15 @@ export default function EditProfileScreen() {
 
       if (newAvatar) {
         const file = newAvatar;
+        const response = await fetch(file.uri);
+        const arrayBuffer = await response.arrayBuffer();
         const fileName = `${session.user.id}_${Date.now()}.${file.name.split('.').pop()}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(fileName, file, { upsert: true });
+          .upload(fileName, arrayBuffer, {
+            upsert: true,
+            contentType: file.mimeType,
+          });
 
         if (uploadError) throw uploadError;
 
@@ -171,7 +176,7 @@ export default function EditProfileScreen() {
         </View>
       ) : (
         <View style={styles.card}>
-          <ThemedText style={styles.cantEditMessage}>Vous ne pouvez modifier votre profil qu'une fois par semaine.</ThemedText>
+          <ThemedText style={styles.cantEditMessage}>Vous ne pouvez modifier votre profil qu&apos;une fois par semaine.</ThemedText>
         </View>
       )}
     </ScrollView>

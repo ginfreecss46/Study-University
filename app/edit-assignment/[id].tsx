@@ -117,7 +117,7 @@ export default function EditAssignmentScreen() {
         <ThemedText style={styles.label}>Description</ThemedText>
         <TextInput value={description} onChangeText={setDescription} style={[styles.input, styles.textArea]} multiline placeholderTextColor={themeColors.textSecondary} />
 
-        <ThemedText style={styles.label}>Date d'échéance</ThemedText>
+        <ThemedText style={styles.label}>Date d&apos;échéance</ThemedText>
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateButton}>
           <ThemedText style={{ color: themeColors.text }}>{dueDate.toLocaleDateString('fr-FR')}</ThemedText>
         </TouchableOpacity>

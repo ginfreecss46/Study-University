@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
-import { TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, View, useColorScheme as useRNColorScheme, Platform } from 'react-native';
+import { View, TextInput, StyleSheet, Alert, useColorScheme as useRNColorScheme, Pressable } from 'react-native';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import DateTimePicker from '@react-native-community/datetimepicker';

@@ -51,7 +51,7 @@ export default function PostDetailScreen() {
       setLoading(true);
       const { data: postData, error: postError } = await supabase
         .from('forum_posts')
-        .select('*, profiles!user_id(full_name), post_reactions!post_id(user_id), documents(*)')
+                .select('*, profiles(*), documents(*), post_reactions!post_id(*)')
         .eq('id', id)
         .single();
       if (postError) throw postError;
@@ -82,13 +82,30 @@ export default function PostDetailScreen() {
 
   useEffect(() => {
     fetchPostAndReplies();
-  }, [fetchPostAndReplies]);
+
+    const channel = supabase.channel(`post-${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'forum_post_replies', filter: `post_id=eq.${id}` },
+        () => fetchPostAndReplies()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'post_reactions' }, // Listen for all reactions changes
+        () => fetchPostAndReplies()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, fetchPostAndReplies]);
 
   useEffect(() => {
     if (post) {
       navigation.setOptions({ title: post.title });
     }
-  }, [post]);
+  }, [post, navigation]);
 
   const handleAddReply = async () => {
     if (!session || !post) return;
@@ -98,7 +115,7 @@ export default function PostDetailScreen() {
       const { error } = await supabase.from('forum_post_replies').insert({ post_id: post.id, user_id: session.user.id, content: newReply });
       if (error) throw error;
       setNewReply('');
-      fetchPostAndReplies();
+      // The UI will update automatically via the realtime subscription
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
     }

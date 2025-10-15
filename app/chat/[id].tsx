@@ -34,7 +34,7 @@ export default function ChatScreen() {
   useEffect(() => {
     const fetchGroupInfo = async () => {
       if (!groupId) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('chat_groups')
         .select('name')
         .eq('id', groupId)
@@ -51,7 +51,7 @@ export default function ChatScreen() {
   useEffect(() => {
     const checkFirstTime = async () => {
       if (!session || !groupId) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('group_members')
         .select('joined_at')
         .eq('group_id', groupId)
@@ -68,7 +68,7 @@ export default function ChatScreen() {
       }
     };
     checkFirstTime();
-  }, [groupId, session, groupName]);
+  }, [groupId, session, groupName, showToast]);
 
   const fetchMessages = useCallback(async () => {
     if (!groupId) return;

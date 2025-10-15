@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Course } from '@/types/database';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useState, useCallback } from 'react';
-import { FlatList, StyleSheet, ActivityIndicator, View, useColorScheme as useRNColorScheme, Pressable } from 'react-native';
+import { FlatList, StyleSheet, ActivityIndicator, View, useColorScheme as useRNColorScheme, Pressable, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 
@@ -37,15 +37,44 @@ export default function CoursesScreen() {
 
   useFocusEffect(useCallback(() => { fetchUserCourses(); }, [fetchUserCourses]));
 
+  const handleDelete = async (courseId: string) => {
+    Alert.alert(
+      "Confirmer la suppression",
+      "Êtes-vous sûr de vouloir supprimer cette matière ? Cette action est irréversible.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase.from('courses').delete().eq('id', courseId);
+              if (error) throw error;
+              setCourses(courses.filter(c => c.id !== courseId));
+              Alert.alert("Succès", "La matière a été supprimée.");
+            } catch (error: any) {
+              Alert.alert("Erreur", error.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderCourse = ({ item }: { item: Course }) => (
     <View style={styles.card}>
       <View style={styles.cardContent}>
         <ThemedText type="defaultSemiBold" style={styles.cardTitle}>{item.title}</ThemedText>
         {item.description && <ThemedText style={styles.cardDescription}>{item.description}</ThemedText>}
       </View>
-      <Pressable style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]} onPress={() => router.push(`/edit-course/${item.id}`)}>
-        <Feather name="edit-2" size={20} color={themeColors.primary} />
-      </Pressable>
+      <View style={styles.buttonsContainer}>
+        <Pressable style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed]} onPress={() => router.push(`/edit-course/${item.id}`)}>
+          <Feather name="edit-2" size={20} color={themeColors.primary} />
+        </Pressable>
+        <Pressable style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed]} onPress={() => handleDelete(item.id)}>
+          <Feather name="trash-2" size={20} color={themeColors.error} />
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -97,7 +126,14 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     cardContent: { flex: 1 },
     cardTitle: { fontSize: FontSizes.subtitle, color: themeColors.text },
     cardDescription: { color: themeColors.textSecondary, marginTop: Spacing.xs },
+    buttonsContainer: {
+      flexDirection: 'row',
+    },
     editButton: { padding: Spacing.sm },
+    deleteButton: {
+      padding: Spacing.sm,
+      marginLeft: Spacing.sm,
+    },
     buttonPressed: { opacity: 0.7 },
     emptyText: { textAlign: 'center', marginTop: Spacing.xl, color: themeColors.textSecondary, fontSize: FontSizes.body },
     fab: {

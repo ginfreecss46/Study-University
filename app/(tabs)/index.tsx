@@ -23,7 +23,7 @@ const DynamicHeaderMessage = ({ isNewUser, upcomingClass, assignments, profile, 
   if (isNewUser) {
     return (
       <ThemedText style={styles.headerGreeting}>
-        Bienvenue dans Study Loock ! Moi, KANG JINHUYK, vous remercie pour l'installation. J'espère que l'application sera utilisée.
+        Bienvenue dans University ! Moi, KANG JINHUYK, vous remercie pour l&apos;installation. J&apos;espère que l&apos;application sera utilisée.
       </ThemedText>
     );
   }
@@ -57,7 +57,7 @@ const DynamicHeaderMessage = ({ isNewUser, upcomingClass, assignments, profile, 
       return (
         <ThemedText style={styles.headerGreeting}>
           <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-          Rappel : Le devoir "{nextAssignment.title}" est à rendre aujourd'hui !
+          Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre aujourd&apos;hui !
         </ThemedText>
       );
     }
@@ -65,7 +65,7 @@ const DynamicHeaderMessage = ({ isNewUser, upcomingClass, assignments, profile, 
       return (
         <ThemedText style={styles.headerGreeting}>
           <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-          Rappel : Le devoir "{nextAssignment.title}" est à rendre demain.
+          Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre demain.
         </ThemedText>
       );
     }
@@ -135,7 +135,7 @@ export default function HomeScreen() {
       animation.stop();
       loop.stop();
     };
-  }, []);
+  }, [animatedValue, shimmerAnim]);
 
   const fetchData = useCallback(async () => {
     if (!session) return;

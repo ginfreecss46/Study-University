@@ -92,7 +92,7 @@ export default function GroupsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListEmptyComponent={() => (
-          <ThemedText style={styles.emptyText}>Vous n'êtes dans aucun groupe pour le moment.</ThemedText>
+          <ThemedText style={styles.emptyText}>Vous n&apos;êtes dans aucun groupe pour le moment.</ThemedText>
         )}
       />
     </View>

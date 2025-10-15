@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet } from 'react-native';
 import { ThemedText } from './themed-text';
-import { Colors } from '@/constants/theme';
+
 import { Feather } from '@expo/vector-icons';
 
 type ToastType = 'success' | 'error' | 'info';

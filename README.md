@@ -1,171 +1,35 @@
-# Study-University
+# University - Votre Compagnon Académique
 
-**Study-University** est une application mobile multi-plateforme (Android, iOS et web) développée avec **Expo** et **React Native**, visant à centraliser les ressources d’étude, la gestion des cours et le suivi universitaire.
-Ce projet est pensé pour être **modulaire, maintenable et évolutif**, avec une intégration backend via **Supabase**.
+Bienvenue sur **University**, l'application mobile tout-en-un conçue pour simplifier et enrichir la vie des étudiants. Développée au service de la communauté étudiante, notre objectif est de centraliser tous les outils dont vous avez besoin pour réussir.
 
----
+## ✨ Fonctionnalités Principales
 
-## 🗂 Sommaire
+University a été pensée pour vous aider à rester organisé et connecté :
 
-* [Description](#description)
-* [Fonctionnalités](#fonctionnalités)
-* [Technologies & Structure](#technologies--structure)
-* [Prérequis](#prérequis)
-* [Installation & Développement](#installation--développement)
-* [Lancer l'application](#lancer-lapplication)
-* [Base de données / Supabase](#base-de-donn%C3%A9es--supabase)
-* [Build & Publication](#build--publication)
-* [Tests](#tests)
-* [Contribuer](#contribuer)
-* [Licence](#licence)
-* [Contact](#contact)
+-   **🗓️ Agenda & Emploi du Temps Intégré :** Visualisez en un clin d'œil vos cours, les dates limites de vos devoirs et vos événements personnels. Ne manquez plus jamais une échéance importante !
 
----
+-   **📚 Gestion des Devoirs :** Ajoutez facilement vos devoirs, suivez leur progression et recevez des rappels automatiques pour ne jamais être pris de court.
 
-## 📄 Description
+-   **🤝 Forum d'Entraide :** Un espace de discussion pour poser des questions, partager des connaissances et collaborer avec d'autres étudiants de votre promotion, filière ou option.
 
-Study-University est conçu pour fournir aux étudiants une interface simple et intuitive pour :
+-   **📂 Bibliothèque de Documents Partagée :** Téléchargez et partagez des ressources précieuses : résumés de cours, notes, exercices corrigés et bien plus encore. La connaissance est faite pour être partagée !
 
-* Consulter leurs cours et notes.
-* Gérer et organiser leur emploi du temps.
-* Accéder à des ressources d’étude et documents pédagogiques.
-* Interagir avec un backend Supabase pour la gestion des données.
+-   **💬 Groupes de Discussion Automatiques :** Dès votre inscription, vous êtes automatiquement ajouté à des groupes de discussion pertinents (par niveau, pôle, filière et option) pour faciliter la communication et l'intégration.
 
-Le projet est pensé pour être facilement extensible et adaptable aux besoins universitaires.
+-   **👤 Profil Personnalisable :** Mettez à jour votre profil académique pour que les autres puissent vous connaître et pour accéder aux groupes et contenus qui vous correspondent.
 
----
+## 🎯 Pour Qui ?
 
-## ⚡ Fonctionnalités
+Cette application est destinée à tous les étudiants qui cherchent à :
+-   Mieux s'organiser au quotidien.
+-   Collaborer plus facilement avec leurs camarades.
+-   Centraliser leurs informations académiques en un seul endroit.
+-   Participer à une communauté d'entraide active.
 
-* Navigation multi-pages avec **Expo Router**.
-* Composants réutilisables dans `components/`.
-* Intégration backend via **Supabase** (`supabase/functions/` et `supabase_schema.sql`).
-* Gestion de types avec TypeScript pour un code robuste et maintenable.
-* Système de constantes et configuration centralisée pour une évolution facile du projet.
+## 🚀 Contribuer
 
----
+Ce projet est fait par et pour les étudiants. Si vous avez des idées d'amélioration ou si vous souhaitez contribuer au code, n'hésitez pas à ouvrir une "issue" ou une "pull request" sur notre dépôt Git.
 
-## 🛠 Technologies & Structure
+## 🐞 Signaler un Problème
 
-* **Frontend :** Expo (React Native)
-* **Langages :** TypeScript / JavaScript
-* **Backend :** Supabase (SQL + Functions)
-
-**Structure principale :**
-
-```
-Study-University/
-├─ app/               # Pages et routage
-├─ components/        # Composants réutilisables
-├─ supabase/          # Fonctions et schéma SQL
-├─ types/             # Typages TypeScript
-├─ assets/            # Images et médias
-├─ package.json       # Dépendances frontend
-├─ tsconfig.json      # Configuration TypeScript
-└─ README.md
-```
-
----
-
-## ⚙️ Prérequis
-
-* Node.js >= 18
-* npm ou yarn
-* Expo CLI
-* Accès à un projet **Supabase** (optionnel pour backend)
-
----
-
-## 💻 Installation & Développement
-
-```bash
-# Cloner le projet
-git clone https://github.com/ginfreecss46/Study-University.git
-cd Study-University
-
-# Installer les dépendances
-npm install
-# ou
-yarn install
-
-# Lancer Expo
-npm start
-# ou
-yarn start
-```
-
----
-
-
-
-
-## 🚀 Lancer l'application
-
-* Avec Expo Go sur mobile (scanner QR code).
-* Sur émulateur Android/iOS via `npm run android` / `npm run ios`.
-* Sur navigateur (web) via `npm run web`.
-
----
-
-## 🗄 Base de données / Supabase
-
-* Le dossier `supabase/` contient :
-
-  * `supabase_schema.sql` → structure de tables et relations.
-  * `functions/` → fonctions serverless pour la logique backend.
-
-* Pour connecter :
-
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-Ajoute-les dans un fichier `.env` à la racine.
-
----
-
-## 📦 Build & Publication
-
-* Créer un build pour production :
-
-```bash
-expo build:android
-expo build:ios
-```
-
-* Ou utiliser EAS Build pour des builds plus avancés.
-
----
-
-## 🧪 Tests
-
-* Tests unitaires avec Jest (si configuré).
-* Vérification des composants React Native dans `app/` via Expo Preview.
-
----
-
-## 🤝 Contribuer
-
-1. Fork le projet.
-2. Crée ta branche feature : `git checkout -b feature/nom-feature`.
-3. Commit tes changements : `git commit -m "Ajout feature ..."`.
-4. Push sur ta branche : `git push origin feature/nom-feature`.
-5. Ouvre une Pull Request.
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence **MIT** — voir le fichier `LICENSE`.
-
----
-
-## ✉️ Contact
-
-* GitHub : [ginfreecss46](https://github.com/ginfreecss46)
-* Projet : Study-University
-
----
-
-*README généré et formaté automatiquement — adapte les sections (Supabase URL, scripts npm, tests) selon ta configuration réelle.*
+Vous avez trouvé un bug ? Une fonctionnalité ne se comporte pas comme prévu ? Ouvrez une "issue" sur le dépôt Git en décrivant le problème le plus précisément possible. Votre aide est précieuse pour améliorer l'application !

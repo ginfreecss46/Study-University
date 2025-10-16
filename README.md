@@ -32,4 +32,9 @@ Ce projet est fait par et pour les étudiants. Si vous avez des idées d'amélio
 
 ## 🐞 Signaler un Problème
 
-Vous avez trouvé un bug ? Une fonctionnalité ne se comporte pas comme prévu ? Ouvrez une "issue" sur le dépôt Git en décrivant le problème le plus précisément possible. Votre aide est précieuse pour améliorer l'application !
+Vous avez trouvé un bug ? Une fonctionnalité ne se comporte pas comme prévu ?
+
+-   **GitHub Issues :** Ouvrez une "issue" sur le dépôt Git en décrivant le problème le plus précisément possible.
+-   **WhatsApp :** Vous pouvez également nous contacter directement sur WhatsApp pour un retour plus rapide : [Contacter le support sur WhatsApp](https://wa.me/+242067274660)
+
+Votre aide est précieuse pour améliorer l'application !

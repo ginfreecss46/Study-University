@@ -158,10 +158,15 @@ export default function EditProfileScreen() {
           <TextInput value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Pôle</ThemedText>
-          <TextInput value={pole} onChangeText={setPole} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+          <TextInput value={pole} onChangeText={handlePoleChange} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Filière</ThemedText>
-          <TextInput value={filiere} onChangeText={setFiliere} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+          <TextInput value={filiere} onChangeText={setFiliere} style={styles.input} placeholderTextColor={themeColors.textSecondary} editable={!isFiliereDisabled} />
+          {isFiliereDisabled && (
+            <ThemedText style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
+              aller choisis votre option la fonction filière est bloqué
+            </ThemedText>
+          )}
 
           <ThemedText style={styles.label}>Option</ThemedText>
           <TextInput value={option} onChangeText={setOption} style={styles.input} placeholderTextColor={themeColors.textSecondary} />

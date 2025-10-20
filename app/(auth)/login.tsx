@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, useColorScheme } from 'react-native';
+import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, useColorScheme, Pressable } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
@@ -56,14 +57,19 @@ export default function Login() {
               style={styles.input}
               placeholderTextColor={Colors[colorScheme].textSecondary}
             />
-            <TextInput
-              placeholder="Mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={styles.input}
-              placeholderTextColor={Colors[colorScheme].textSecondary}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Mot de passe"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                style={styles.passwordInput}
+                placeholderTextColor={Colors[colorScheme].textSecondary}
+              />
+              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors[colorScheme].textSecondary} />
+              </Pressable>
+            </View>
             <Button title={loading ? 'Connexion...' : 'Se connecter'} onPress={signInWithEmail} disabled={loading} />
           </View>
 
@@ -103,6 +109,44 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
       elevation: 5,
     },
     input: { height: 50, backgroundColor: themeColors.background, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.md, fontSize: FontSizes.body, color: themeColors.text },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      borderRadius: 12,
+      marginBottom: Spacing.md,
+      backgroundColor: themeColors.background,
+    },
+    passwordInput: {
+      flex: 1,
+      height: 50,
+      paddingHorizontal: Spacing.md,
+      fontSize: FontSizes.body,
+      color: themeColors.text,
+    },
+    eyeIcon: {
+      padding: Spacing.md,
+    },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      borderRadius: 12,
+      marginBottom: Spacing.md,
+      backgroundColor: themeColors.background,
+    },
+    passwordInput: {
+      flex: 1,
+      height: 50,
+      paddingHorizontal: Spacing.md,
+      fontSize: FontSizes.body,
+      color: themeColors.text,
+    },
+    eyeIcon: {
+      padding: Spacing.md,
+    },
     dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.lg },
     divider: { flex: 1, height: 1, backgroundColor: themeColors.border },
     dividerText: { marginHorizontal: Spacing.md, color: themeColors.textSecondary },

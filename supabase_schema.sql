@@ -600,6 +600,10 @@ CREATE POLICY "Users can update their own profile." ON "public"."profiles" FOR U
 
 
 
+CREATE POLICY "Authenticated users can view all profiles" ON "public"."profiles" FOR SELECT USING ((auth.role() = 'authenticated'::text));
+
+
+
 CREATE POLICY "Users can view all courses" ON "public"."courses" FOR SELECT USING (("auth"."role"() = 'authenticated'::"text"));
 
 

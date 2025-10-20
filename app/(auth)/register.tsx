@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, useColorScheme } from 'react-native';
+import { View, TextInput, Alert, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, useColorScheme, Pressable } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +13,7 @@ import { Picker } from '@react-native-picker/picker';
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [level, setLevel] = useState('');
   const [university, setUniversity] = useState('');
@@ -28,8 +29,17 @@ export default function Register() {
   const colorScheme = useColorScheme() ?? 'light';
   const styles = useMemo(() => getStyles(colorScheme), [colorScheme]);
 
+  const handlePoleChange = (itemValue) => {
+    setPole(itemValue);
+    if (itemValue === 'commerce' || itemValue === 'droit') {
+      setFiliere('');
+    }
+  };
+
+  const isFiliereDisabled = pole === 'commerce' || pole === 'droit';
+
   async function signUpWithEmail() {
-    if (!fullName || !level || !email || !password || !university || !academicYear || !pole || !filiere || !option || !phoneNumber || !gender) {
+    if (!fullName || !level || !email || !password || !university || !academicYear || !pole || (pole === 'polytechnique' && !filiere) || !option || !phoneNumber || !gender) {
       Alert.alert('Champs requis', 'Veuillez remplir tous les champs.');
       showToast('Veuillez remplir tous les champs', 'error');
       return;
@@ -39,9 +49,9 @@ export default function Register() {
       email,
       password,
       options: {
-        data: { 
-          full_name: fullName, 
-          level, 
+        data: {
+          full_name: fullName,
+          level,
           university,
           academic_year: academicYear,
           pole,
@@ -79,7 +89,12 @@ export default function Register() {
           <View style={styles.card}>
             <TextInput placeholder="Nom complet" value={fullName} onChangeText={setFullName} style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
             <TextInput placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
-            <TextInput placeholder="Mot de passe (6+ caractères)" value={password} onChangeText={setPassword} secureTextEntry style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
+                        <View style={styles.passwordContainer}>
+              <TextInput placeholder="Mot de passe (6+ caractères)" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} style={styles.passwordInput} placeholderTextColor={styles.input.placeholderTextColor} />
+              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={styles.input.placeholderTextColor} />
+              </Pressable>
+            </View>
             <TextInput placeholder="Numéro de téléphone" value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
             
             <View style={styles.pickerContainer}>
@@ -101,26 +116,73 @@ export default function Register() {
             <TextInput placeholder="Année Académique (ex: 2024-2025)" value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
 
             <View style={styles.pickerContainer}>
-              <Picker selectedValue={pole} onValueChange={(itemValue) => setPole(itemValue)} style={styles.picker} dropdownIconColor={styles.picker.color}>
+              <Picker selectedValue={pole} onValueChange={handlePoleChange} style={styles.picker} dropdownIconColor={styles.picker.color}>
                 <Picker.Item label="Pôle" value="" />
                 <Picker.Item label="Polytechnique" value="polytechnique" />
-                <Picker.Item label="Sciences de la Santé" value="fss" />
+                <Picker.Item label="Commerce" value="commerce" />
+                <Picker.Item label="Droit" value="droit" />    
               </Picker>
             </View>
 
             <View style={styles.pickerContainer}>
-              <Picker selectedValue={filiere} onValueChange={(itemValue) => setFiliere(itemValue)} style={styles.picker} dropdownIconColor={styles.picker.color}>
+              <Picker selectedValue={filiere} onValueChange={(itemValue) => setFiliere(itemValue)} style={styles.picker} dropdownIconColor={styles.picker.color} enabled={!isFiliereDisabled}>
                 <Picker.Item label="Filière" value="" />
                 <Picker.Item label="Génie Informatique" value="gi" />
-                <Picker.Item label="Médecine" value="medecine" />
+                <Picker.Item label="Génie Mécanique" value="gm" />
+                <Picker.Item label="Génie Electrique" value="ge" />
+                <Picker.Item label="Génie industriel" value="gi" />
+                <Picker.Item label="Génie civil" value="gc" />
+                <Picker.Item label="Geosciences" value="gs" />
               </Picker>
             </View>
+            {isFiliereDisabled && (
+              <ThemedText style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
+                aller choisis votre option la fonction filière est bloqué
+              </ThemedText>
+            )}
 
             <View style={styles.pickerContainer}>
               <Picker selectedValue={option} onValueChange={(itemValue) => setOption(itemValue)} style={styles.picker} dropdownIconColor={styles.picker.color}>
                 <Picker.Item label="Option" value="" />
                 <Picker.Item label="Génie Logiciel" value="gl" />
                 <Picker.Item label="Réseaux et Télécommunications" value="rt" />
+                <Picker.Item label="Développement Informatique" value="di" />
+                <Picker.Item label="Intelligence Artificielle" value="ia" />
+                <Picker.Item label="Maintenance Industrielle" value="mi" />
+                <Picker.Item label="Electromecanique" value="em" />
+                <Picker.Item label="Mécatronique" value="m" />
+                <Picker.Item label="Electrotechnique" value="et" />
+                <Picker.Item label="Automatisme et Informatique industrielle" value="aii" />
+                <Picker.Item label="Automatisme et instrumentation" value="ai" />
+                <Picker.Item label="Génie des procedés/ Genie chimique" value="gp/gc" />
+                <Picker.Item label="Génie des procédés alimentaire" value="gpa" />
+                <Picker.Item label="Qualité hygiène décurité & environnement" value="qhse" />
+                <Picker.Item label="Raffinage & pétrochimie" value="rp" />
+                <Picker.Item label="Bâtiment & travaux publics" value="btp" />
+                <Picker.Item label="Architecture & urbanisation" value="au" />
+                <Picker.Item label="Géomètre et topographe" value="gt" />
+                <Picker.Item label="Mines & carrières" value="mc" />
+                <Picker.Item label="Génie pétrolier" value="gp" />
+                <Picker.Item label="Génie géologique de hydro systèmes" value="gghs" />
+                <Picker.Item label="Géophysique" value="ge" />
+                <Picker.Item label="Géotechnique & géologie appliquée" value="gga" />
+                <Picker.Item label="Gestion de l'environnement " value="ge" />
+                <Picker.Item label="Management commercial Opérationnel" value="mco" />
+                <Picker.Item label="Comptabilité&Gestion entreprise" value="cge" />
+                <Picker.Item label="Transit& Commerce International" value="tci" />
+                <Picker.Item label="Gestions Des Resources Humaines" value="grh" />
+                <Picker.Item label="Banke & Finance & assurances" value="bf" />
+                <Picker.Item label="Business Trade & Marketing" value="btm" />
+                <Picker.Item label="Marketing digital & Communication" value="mdc" />
+                <Picker.Item label="Comptabilité é finances" value="cf" />
+                <Picker.Item label="Transport & Logistique" value="TL" />
+                <Picker.Item label="Economie Pétrolière" value="ep" />
+                <Picker.Item label="Assistant De Manager" value="am" />
+                <Picker.Item label="Diplomatie & Relations Internationales" value="dri" />
+                <Picker.Item label="Sciences Politiques" value="sp" />
+                <Picker.Item label="Droit Des Affaires" value="da" />
+                <Picker.Item label="Droit Public" value="dp" />
+                <Picker.Item label="Droit Privé" value="Dv" />
               </Picker>
             </View>
 
@@ -161,6 +223,44 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     header: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: Spacing.lg, color: themeColors.primary, fontFamily: Fonts.rounded },
     card: { backgroundColor: themeColors.card, borderRadius: 16, padding: Spacing.lg, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 5 },
     input: { height: 52, backgroundColor: themeColors.background, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.md, fontSize: FontSizes.body, color: themeColors.text, placeholderTextColor: themeColors.textSecondary },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: themeColors.background,
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      borderRadius: 12,
+      marginBottom: Spacing.md,
+    },
+    passwordInput: {
+      flex: 1,
+      height: 52,
+      paddingHorizontal: Spacing.md,
+      fontSize: FontSizes.body,
+      color: themeColors.text,
+    },
+    eyeIcon: {
+      padding: Spacing.md,
+    },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: themeColors.background,
+      borderWidth: 1,
+      borderColor: themeColors.border,
+      borderRadius: 12,
+      marginBottom: Spacing.md,
+    },
+    passwordInput: {
+      flex: 1,
+      height: 52,
+      paddingHorizontal: Spacing.md,
+      fontSize: FontSizes.body,
+      color: themeColors.text,
+    },
+    eyeIcon: {
+      padding: Spacing.md,
+    },
     pickerContainer: {
       backgroundColor: themeColors.background,
       borderWidth: 1,

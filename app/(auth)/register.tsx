@@ -90,7 +90,7 @@ export default function Register() {
             <TextInput placeholder="Nom complet" value={fullName} onChangeText={setFullName} style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
             <TextInput placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
                         <View style={styles.passwordContainer}>
-              <TextInput placeholder="Mot de passe (6+ caractères)" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} style={styles.passwordInput} placeholderTextColor={styles.input.placeholderTextColor} />
+              <TextInput placeholder="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} style={styles.passwordInput} placeholderTextColor={styles.input.placeholderTextColor} />
               <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                 <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={styles.input.placeholderTextColor} />
               </Pressable>
@@ -108,12 +108,31 @@ export default function Register() {
             <View style={styles.pickerContainer}>
               <Picker selectedValue={university} onValueChange={(itemValue) => setUniversity(itemValue)} style={styles.picker} dropdownIconColor={styles.picker.color}>
                 <Picker.Item label="Université" value="" />
-                <Picker.Item label="Université d'Abomey-Calavi" value="UAC" />
-                <Picker.Item label="Université de Parakou" value="UP" />
+                <Picker.Item label="Université Marien Ngouabi (UMNG)" value="umng" />
+                <Picker.Item label="École Supérieure d'Administration des Affaires (ESAA)" value="esaa" />
+                <Picker.Item label="Université Libre du Congo (ULC)" value="ulc" />
+                <Picker.Item label="École Supérieure de Gestion et d'Administration des Entreprises (ESGAE)" value="esgae" />
+                <Picker.Item label="École Supérieure de Technologie (Brazzaville)" value="estb" />
+                <Picker.Item label="Haute École de Gestion (HEG-Brazza)" value="heg-brazza" />
+                <Picker.Item label="Hemip-Haute Ecole De Management Et D'ingenieurie (HEMIP)" value="hemip" />
+                <Picker.Item label="IFIM - Informatique (IFIM)" value="ifim" />
+                <Picker.Item label="IHEM-ISTI" value="ihem-isti" />
+                <Picker.Item label="Institut Comptalia Training I.C.T. (ICT)" value="ict" />
+                <Picker.Item label="IUT-FACOB" value="iut-facob" />
+                <Picker.Item label="Insitut International 2i" value="2I" />
+                <Picker.Item label="SUECO" value="SC" />
+                <Picker.Item label="ISTC" value="ISTC" />
+                <Picker.Item label="Estam" value="EM" />
+                <Picker.Item label="DGC" value="DGC" />
+                <Picker.Item label="EAD" value="EAD" />
+                <Picker.Item label="École Supérieure de Technologie du Littoral (EST-Littoral)" value="est-littoral" />
+                <Picker.Item label="Institut Supérieur de Technologie d'Afrique Centrale (ISTAC)" value="istac" />
+                <Picker.Item label="Institut Ucac-Icam" value="ucac-icam" />
+                <Picker.Item label="IUT-AC (Institut Universitaire de Technologie d'Afrique Centrale)" value="iut-ac" />
               </Picker>
             </View>
 
-            <TextInput placeholder="Année Académique (ex: 2024-2025)" value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
+            <TextInput placeholder="Année Académique" value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={styles.input.placeholderTextColor} />
 
             <View style={styles.pickerContainer}>
               <Picker selectedValue={pole} onValueChange={handlePoleChange} style={styles.picker} dropdownIconColor={styles.picker.color}>

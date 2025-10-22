@@ -70,16 +70,16 @@ export default function EditProfileScreen() {
     fetchProfile();
   }, [session]);
 
-  const handlePickAvatar = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: 'image/*',
-    });
+  // const handlePickAvatar = async () => {
+  //   const result = await DocumentPicker.getDocumentAsync({
+  //     type: 'image/*',
+  //   });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setNewAvatar(result.assets[0]);
-      setAvatarUrl(result.assets[0].uri);
-    }
-  };
+  //   if (!result.canceled && result.assets && result.assets.length > 0) {
+  //     setNewAvatar(result.assets[0]);
+  //     setAvatarUrl(result.assets[0].uri);
+  //   }
+  // };
 
   const handleUpdate = async () => {
     if (!session) return;
@@ -116,7 +116,7 @@ export default function EditProfileScreen() {
           pole,
           filiere,
           option,
-          avatar_url: newAvatarUrl,
+          // avatar_url: newAvatarUrl, // Avatar upload is disabled
           profile_last_updated_at: new Date().toISOString() 
         })
         .eq('id', session.user.id);
@@ -142,10 +142,10 @@ export default function EditProfileScreen() {
       {canEdit ? (
         <View style={styles.card}>
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: avatarUrl || undefined }} style={styles.avatar} />
-            <Pressable style={styles.avatarEditButton} onPress={handlePickAvatar}>
+            {/*             <Image source={require('../../assets/images/default-avatar.png')} style={styles.avatar} /> */}
+            {/* <Pressable style={styles.avatarEditButton} onPress={handlePickAvatar}>
               <ThemedText style={{color: 'white'}}>Changer</ThemedText>
-            </Pressable>
+            </Pressable> */}
           </View>
 
           <ThemedText style={styles.label}>Nom complet</ThemedText>
@@ -158,15 +158,10 @@ export default function EditProfileScreen() {
           <TextInput value={academicYear} onChangeText={setAcademicYear} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Pôle</ThemedText>
-          <TextInput value={pole} onChangeText={handlePoleChange} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
+          <TextInput value={pole} onChangeText={setPole} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Filière</ThemedText>
-          <TextInput value={filiere} onChangeText={setFiliere} style={styles.input} placeholderTextColor={themeColors.textSecondary} editable={!isFiliereDisabled} />
-          {isFiliereDisabled && (
-            <ThemedText style={{ color: 'red', textAlign: 'center', marginBottom: 10 }}>
-              aller choisis votre option la fonction filière est bloqué
-            </ThemedText>
-          )}
+          <TextInput value={filiere} onChangeText={setFiliere} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
 
           <ThemedText style={styles.label}>Option</ThemedText>
           <TextInput value={option} onChangeText={setOption} style={styles.input} placeholderTextColor={themeColors.textSecondary} />
@@ -251,6 +246,11 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
       backgroundColor: 'rgba(0,0,0,0.6)',
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
+      borderRadius: 12,
+    },
+  });
+}
+d,
       borderRadius: 12,
     },
   });

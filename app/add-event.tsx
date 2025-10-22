@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState, useMemo } from 'react';
-import { View, TextInput, StyleSheet, Alert, useColorScheme as useRNColorScheme, Pressable } from 'react-native';
+import { View, TextInput, StyleSheet, Alert, useColorScheme as useRNColorScheme, Pressable, ScrollView } from 'react-native';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -170,4 +170,4 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
       justifyContent: 'space-between',
     },
   });
-}
+};

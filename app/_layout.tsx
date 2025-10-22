@@ -96,7 +96,8 @@ function RootLayoutNav() {
       <Stack.Screen name="upload-document" options={{ title: 'Téléverser un document' }} />
       <Stack.Screen name="documents" options={{ title: 'Bibliothèque' }} />
       <Stack.Screen name="chat/[id]" options={{ title: 'Chat' }} />
-      <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+              <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+        <Stack.Screen name="profile/[id]" options={{ title: 'Profil' }} />
     </Stack>
   );
 }

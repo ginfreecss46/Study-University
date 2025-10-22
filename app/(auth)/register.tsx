@@ -114,7 +114,18 @@ export default function Register() {
                 <Picker.Item label="École Supérieure de Gestion et d'Administration des Entreprises (ESGAE)" value="esgae" />
                 <Picker.Item label="École Supérieure de Technologie (Brazzaville)" value="estb" />
                 <Picker.Item label="Haute École de Gestion (HEG-Brazza)" value="heg-brazza" />
-                <Picker.Item label="Hemip-Haute Ecole De Management Et D'ingenieurie (HEMIP)" value="hemip" />
+                <Picker.Item label="Henri Lopes" value="henri_lopes" />
+                <Picker.Item label="ECAM" value="ecam" />
+                <Picker.Item label="EMEC" value="emec" />
+                <Picker.Item label="DGC" value="dgc" />
+                <Picker.Item label="Sueco" value="sueco" />
+                <Picker.Item label="EAD" value="ead" />
+                <Picker.Item label="ISTC" value="istc" />
+                <Picker.Item label="Loango" value="loango" />
+                
+                <Picker.Item label="Hemip-Haute Ecole De Management Et D'ingenierie (HEMIP)" value="hemip" />
+                <Picker.Item label="Leonard de Vinci" value="leonard_de_vinci" />
+                <Picker.Item label="UCAC" value="ucac" />
                 <Picker.Item label="IFIM - Informatique (IFIM)" value="ifim" />
                 <Picker.Item label="IHEM-ISTI" value="ihem-isti" />
                 <Picker.Item label="Institut Comptalia Training I.C.T. (ICT)" value="ict" />
@@ -242,25 +253,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     header: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: Spacing.lg, color: themeColors.primary, fontFamily: Fonts.rounded },
     card: { backgroundColor: themeColors.card, borderRadius: 16, padding: Spacing.lg, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 5 },
     input: { height: 52, backgroundColor: themeColors.background, borderWidth: 1, borderColor: themeColors.border, borderRadius: 12, paddingHorizontal: Spacing.md, marginBottom: Spacing.md, fontSize: FontSizes.body, color: themeColors.text, placeholderTextColor: themeColors.textSecondary },
-    passwordContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: themeColors.background,
-      borderWidth: 1,
-      borderColor: themeColors.border,
-      borderRadius: 12,
-      marginBottom: Spacing.md,
-    },
-    passwordInput: {
-      flex: 1,
-      height: 52,
-      paddingHorizontal: Spacing.md,
-      fontSize: FontSizes.body,
-      color: themeColors.text,
-    },
-    eyeIcon: {
-      padding: Spacing.md,
-    },
     passwordContainer: {
       flexDirection: 'row',
       alignItems: 'center',

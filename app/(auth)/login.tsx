@@ -128,25 +128,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     eyeIcon: {
       padding: Spacing.md,
     },
-    passwordContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: themeColors.border,
-      borderRadius: 12,
-      marginBottom: Spacing.md,
-      backgroundColor: themeColors.background,
-    },
-    passwordInput: {
-      flex: 1,
-      height: 50,
-      paddingHorizontal: Spacing.md,
-      fontSize: FontSizes.body,
-      color: themeColors.text,
-    },
-    eyeIcon: {
-      padding: Spacing.md,
-    },
     dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.lg },
     divider: { flex: 1, height: 1, backgroundColor: themeColors.border },
     dividerText: { marginHorizontal: Spacing.md, color: themeColors.textSecondary },

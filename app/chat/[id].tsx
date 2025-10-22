@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useLocalSearchParams, useNavigation } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import { View, TextInput, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, useColorScheme, Pressable, Alert, Image } from "react-native";
 import { Colors, Spacing, FontSizes } from "@/constants/theme";
@@ -21,6 +21,7 @@ export default function ChatScreen() {
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const navigation = useNavigation();
+  const router = useRouter();
   const { showToast } = useToast();
   const colorScheme = useColorScheme() ?? 'light';
   const styles = getStyles(colorScheme);
@@ -99,10 +100,13 @@ export default function ChatScreen() {
         const newMessage = payload.new as Message;
         if (newMessage.user_id) {
           const { data: profileData, error } = await supabase.from('profiles').select('full_name, avatar_url').eq('id', newMessage.user_id).single();
-          if (error) console.error('Error fetching profile for new message:', error);
-          else newMessage.profiles = profileData;
+          if (error) {
+            console.error('Error fetching profile for new message:', error);
+          } else {
+            newMessage.profiles = profileData;
+          }
         }
-        setMessages(currentMessages => [newMessage, ...currentMessages]);
+        fetchMessages(); // Re-fetch messages to update the list
       })
       .subscribe();
 
@@ -120,6 +124,28 @@ export default function ChatScreen() {
     await supabase.from('chat_messages').insert({ group_id: groupId, user_id: session.user.id, content: content, message_type: 'text' });
   };
 
+  const handleDeleteMessage = async (messageId: number) => {
+    Alert.alert(
+      'Supprimer le message',
+      'Êtes-vous sûr de vouloir supprimer ce message ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase.from('chat_messages').delete().eq('id', messageId);
+            if (error) {
+              Alert.alert('Erreur', error.message);
+            } else {
+              setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderMessage = ({ item }: { item: Message }) => {
     if (item.message_type === 'system') {
       return (
@@ -131,22 +157,30 @@ export default function ChatScreen() {
 
     const isMine = item.user_id === session?.user.id;
     return (
-      <View style={[styles.messageRow, isMine ? styles.myMessageRow : styles.otherMessageRow]}>
-        {!isMine && (
-          <View style={styles.avatar}>
-            {item.profiles?.avatar_url ? (
-              <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatarImage} />
-            ) : (
-              <Feather name="user" size={20} color={themeColors.textSecondary} />
-            )}
+      <Pressable onLongPress={() => isMine && handleDeleteMessage(item.id)}>
+        <View style={[styles.messageRow, isMine ? styles.myMessageRow : styles.otherMessageRow]}>
+          {!isMine && (
+            <View style={styles.avatar}>
+              {item.profiles?.avatar_url ? (
+                <Image source={{ uri: item.profiles.avatar_url }} style={styles.avatarImage} />
+              ) : (
+                <Feather name="user" size={20} color={themeColors.textSecondary} />
+              )}
+            </View>
+          )}
+          <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.otherMessage]}>
+            {!isMine && 
+              <Link href={`/profile/${item.user_id}`} asChild>
+                <Pressable>
+                  <ThemedText style={styles.authorName}>{item.profiles?.full_name || 'Anonyme'}</ThemedText>
+                </Pressable>
+              </Link>
+            }
+            <ThemedText style={isMine ? styles.myMessageText : styles.otherMessageText}>{item.content}</ThemedText>
+            <ThemedText style={[styles.timestamp, isMine ? styles.myTimestamp : styles.otherTimestamp]}>{new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</ThemedText>
           </View>
-        )}
-        <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.otherMessage]}>
-          {!isMine && <ThemedText style={styles.authorName}>{item.profiles?.full_name || 'Anonyme'}</ThemedText>}
-          <ThemedText style={isMine ? styles.myMessageText : styles.otherMessageText}>{item.content}</ThemedText>
-          <ThemedText style={[styles.timestamp, isMine ? styles.myTimestamp : styles.otherTimestamp]}>{new Date(item.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</ThemedText>
         </View>
-      </View>
+      </Pressable>
     );
   };
 

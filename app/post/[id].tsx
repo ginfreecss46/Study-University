@@ -193,7 +193,7 @@ export default function PostDetailScreen() {
           <Feather name={item.post_reactions?.some(r => r.user_id === session?.user.id) ? "heart" : "heart"} size={20} color={item.post_reactions?.some(r => r.user_id === session?.user.id) ? themeColors.primary : themeColors.textSecondary} />
           <ThemedText style={styles.likeCount}>{item.likes_count || 0}</ThemedText>
         </Pressable>
-        {userIsAdmin && (
+        {(userIsAdmin || session?.user.id === item.user_id) && (
           <Pressable onPress={() => handleDeleteReply(item.id)} style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed]}>
             <Feather name="trash-2" size={20} color={themeColors.destructive} />
           </Pressable>

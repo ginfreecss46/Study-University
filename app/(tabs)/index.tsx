@@ -19,66 +19,6 @@ const quickActions = [
 
 type UpcomingClass = ClassSchedule & { courses: { title: string } };
 
-const DynamicHeaderMessage = ({ isNewUser, upcomingClass, assignments, profile, styles }) => {
-  if (isNewUser) {
-    return (
-      <ThemedText style={styles.headerGreeting}>
-        Bienvenue dans University ! Moi, KANG JINHUYK, vous remercie pour l&apos;installation. J&apos;espère que l&apos;application sera utilisée.
-      </ThemedText>
-    );
-  }
-
-  if (upcomingClass && upcomingClass.courses) {
-    const [hours, minutes] = upcomingClass.start_time.split(':');
-    const startTime = new Date();
-    startTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-    
-    const now = new Date();
-    const diffMinutes = (startTime.getTime() - now.getTime()) / 60000;
-
-    if (diffMinutes > 0 && diffMinutes <= 30) {
-      return (
-        <ThemedText style={styles.headerGreeting}>
-          <Feather name="clock" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-          Votre cours de {upcomingClass.courses.title} commence dans {Math.round(diffMinutes)} minutes !
-        </ThemedText>
-      );
-    }
-  }
-
-  if (assignments && assignments.length > 0) {
-    const nextAssignment = assignments[0];
-    const dueDate = new Date(nextAssignment.due_date);
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-
-    if (dueDate.toDateString() === today.toDateString()) {
-      return (
-        <ThemedText style={styles.headerGreeting}>
-          <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-          Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre aujourd&apos;hui !
-        </ThemedText>
-      );
-    }
-    if (dueDate.toDateString() === tomorrow.toDateString()) {
-      return (
-        <ThemedText style={styles.headerGreeting}>
-          <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
-          Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre demain.
-        </ThemedText>
-      );
-    }
-  }
-
-  return (
-    <ThemedText style={styles.headerGreeting}>
-      Bonjour, {profile?.full_name || 'Étudiant'} !
-      <Feather name="smile" size={24} color={Colors.dark.text} style={{ marginLeft: 8 }} />
-    </ThemedText>
-  );
-};
-
 export default function HomeScreen() {
   const { session } = useAuth();
   const router = useRouter();
@@ -140,7 +80,6 @@ export default function HomeScreen() {
   const fetchData = useCallback(async () => {
     if (!session) return;
     try {
-      // Fetch profile and user courses in parallel
       const [profileResult, userCoursesResult] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).single(),
         supabase.from('user_courses').select('course_id').eq('user_id', session.user.id)
@@ -154,7 +93,7 @@ export default function HomeScreen() {
       if (!userCourses || userCourses.length === 0) {
         setAssignments([]);
         setUpcomingClass(null);
-        setLoading(false); // Make sure to stop loading
+        setLoading(false);
         return;
       }
       const courseIds = userCourses.map((uc) => uc.course_id);
@@ -165,7 +104,6 @@ export default function HomeScreen() {
       const dayOfWeek = today.getDay();
       const currentTime = today.toTimeString().split(' ')[0];
 
-      // Fetch assignments and next class in parallel
       const [assignmentsResult, nextClassResult] = await Promise.all([
         supabase.from("assignments").select("*, courses(title)").in("course_id", courseIds).gte("due_date", today.toISOString()).lte("due_date", oneWeekFromNow.toISOString()).order("due_date", { ascending: true }),
         supabase.from('class_schedules').select('*, courses(title)').in('course_id', courseIds).eq('day_of_week', dayOfWeek).gte('start_time', currentTime).order('start_time', { ascending: true }).limit(1).single()
@@ -198,6 +136,65 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
+  const Greeting = () => {
+    if (isNewUser) {
+      return (
+        <ThemedText style={styles.headerGreeting}>
+          Bienvenue dans Study University ! Moi, KANG JINHUYK, vous remercie pour l&apos;installation. J&apos;espere que l&apos;application sera utilisee.
+        </ThemedText>
+      );
+    }
+
+    if (upcomingClass && upcomingClass.courses) {
+      const [hours, minutes] = upcomingClass.start_time.split(':');
+      const classTime = new Date();
+      classTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      const now = new Date();
+      const diffMinutes = (classTime.getTime() - now.getTime()) / 60000;
+
+      if (diffMinutes > 0 && diffMinutes <= 30) {
+        return (
+          <ThemedText style={styles.headerGreeting}>
+            <Feather name="clock" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+            Votre cours de {upcomingClass.courses.title} commence dans {Math.round(diffMinutes)} minutes !
+          </ThemedText>
+        );
+      }
+    }
+
+    if (assignments && assignments.length > 0) {
+      const nextAssignment = assignments[0];
+      const dueDate = new Date(nextAssignment.due_date);
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
+
+      if (dueDate.toDateString() === today.toDateString()) {
+        return (
+          <ThemedText style={styles.headerGreeting}>
+            <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+            Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre aujourd&apos;hui !
+          </ThemedText>
+        );
+      } else if (dueDate.toDateString() === tomorrow.toDateString()) {
+        return (
+          <ThemedText style={styles.headerGreeting}>
+            <Feather name="alert-triangle" size={20} color={Colors.dark.text} style={{ marginRight: 8 }} />
+            Rappel : Le devoir &quot;{nextAssignment.title}&quot; est à rendre demain.
+          </ThemedText>
+        );
+      }
+    }
+
+    const userName = profile?.full_name || '&Eacute;tudiant';
+    return (
+      <ThemedText style={styles.headerGreeting}>
+        Bonjour, {userName} ! 
+        <Feather name="smile" size={24} color={Colors.dark.text} style={{ marginLeft: 8 }} />
+      </ThemedText>
+    );
+  };
+
   const themeColors = Colors[colorScheme];
 
   if (loading) {
@@ -224,7 +221,7 @@ export default function HomeScreen() {
           styles.headerContent,
           { opacity: animatedValue, transform: [{ translateY: animatedValue.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }
         ]}>
-          <DynamicHeaderMessage isNewUser={isNewUser} upcomingClass={upcomingClass} assignments={assignments} profile={profile} styles={styles} />
+          <Greeting />
         </Animated.View>
       </LinearGradient>
 
@@ -317,4 +314,4 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
     dueDate: { marginTop: 4, fontSize: FontSizes.caption, color: themeColors.textSecondary },
     emptyText: { textAlign: 'center', marginTop: Spacing.lg, color: themeColors.textSecondary, fontSize: FontSizes.body },
   });
-}
+};

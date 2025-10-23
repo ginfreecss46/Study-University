@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { Link, useLocalSearchParams, useNavigation } from "expo-router";
 import { useState, useEffect, useCallback } from "react";
 import { View, TextInput, StyleSheet, FlatList, ActivityIndicator, KeyboardAvoidingView, Platform, useColorScheme, Pressable, Alert, Image } from "react-native";
 import { Colors, Spacing, FontSizes } from "@/constants/theme";
@@ -21,7 +21,6 @@ export default function ChatScreen() {
   const { id: groupId } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const navigation = useNavigation();
-  const router = useRouter();
   const { showToast } = useToast();
   const colorScheme = useColorScheme() ?? 'light';
   const styles = getStyles(colorScheme);

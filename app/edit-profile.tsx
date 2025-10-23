@@ -3,10 +3,10 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, View, useColorScheme as useRNColorScheme, Image, Pressable } from 'react-native';
+import { TextInput, StyleSheet, Alert, ActivityIndicator, ScrollView, View, useColorScheme as useRNColorScheme, Image } from 'react-native';
 import { Colors, Spacing, FontSizes } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
-import * as DocumentPicker from 'expo-document-picker';
+
 
 export default function EditProfileScreen() {
   const { session } = useAuth();
@@ -22,8 +22,8 @@ export default function EditProfileScreen() {
   const [pole, setPole] = useState('');
   const [filiere, setFiliere] = useState('');
   const [option, setOption] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [newAvatar, setNewAvatar] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  
+  // const [newAvatar, setNewAvatar] = useState<DocumentPicker.DocumentPickerAsset | null>(null); // Commented out
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
 
@@ -47,7 +47,7 @@ export default function EditProfileScreen() {
           setPole(data.pole || '');
           setFiliere(data.filiere || '');
           setOption(data.option || '');
-          setAvatarUrl(data.avatar_url || null);
+          // setAvatarUrl(data.avatar_url || null); // Keep avatarUrl null to force default image
 
           if (data.profile_last_updated_at) {
             const lastUpdate = new Date(data.profile_last_updated_at);
@@ -86,25 +86,25 @@ export default function EditProfileScreen() {
 
     try {
       setLoading(true);
-      let newAvatarUrl = avatarUrl;
+      // let newAvatarUrl = avatarUrl; // Avatar upload is disabled
 
-      if (newAvatar) {
-        const file = newAvatar;
-        const response = await fetch(file.uri);
-        const arrayBuffer = await response.arrayBuffer();
-        const fileName = `${session.user.id}_${Date.now()}.${file.name.split('.').pop()}`;
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, arrayBuffer, {
-            upsert: true,
-            contentType: file.mimeType,
-          });
+      // if (newAvatar) {
+      //   const file = newAvatar;
+      //   const response = await fetch(file.uri);
+      //   const arrayBuffer = await response.arrayBuffer();
+      //   const fileName = `${session.user.id}_${Date.now()}.${file.name.split('.').pop()}`;
+      //   const { error: uploadError } = await supabase.storage
+      //     .from('avatars')
+      //     .upload(fileName, arrayBuffer, {
+      //       upsert: true,
+      //       contentType: file.mimeType,
+      //     });
 
-        if (uploadError) throw uploadError;
+      //   if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        newAvatarUrl = urlData.publicUrl;
-      }
+      //   const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      //   newAvatarUrl = urlData.publicUrl;
+      // }
 
       const { error } = await supabase
         .from('profiles')
@@ -142,7 +142,7 @@ export default function EditProfileScreen() {
       {canEdit ? (
         <View style={styles.card}>
           <View style={styles.avatarContainer}>
-            {/*             <Image source={require('../../assets/images/default-avatar.png')} style={styles.avatar} /> */}
+            <Image source={require('../assets/images/icon.png')} style={styles.avatar} />
             {/* <Pressable style={styles.avatarEditButton} onPress={handlePickAvatar}>
               <ThemedText style={{color: 'white'}}>Changer</ThemedText>
             </Pressable> */}
@@ -246,11 +246,6 @@ const getStyles = (colorScheme: 'light' | 'dark') => {
       backgroundColor: 'rgba(0,0,0,0.6)',
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
-      borderRadius: 12,
-    },
-  });
-}
-d,
       borderRadius: 12,
     },
   });

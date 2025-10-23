@@ -61,7 +61,9 @@ function RootLayoutNav() {
     SplashScreen.hideAsync();
   }, [session, loading, segments, router]);
 
-  
+  if (loading) {
+    return null;
+  }
 
   return (
     <Stack

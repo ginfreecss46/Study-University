@@ -49,28 +49,56 @@ export default function PostDetailScreen() {
     if (!id) return;
     try {
       setLoading(true);
+      // Step 1: Fetch the main post data (already fixed)
       const { data: postData, error: postError } = await supabase
         .from('forum_posts')
-                .select('*, profiles(*), documents(*), post_reactions!post_id(*)')
+        .select('*, profiles(*), documents(*)')
         .eq('id', id)
         .single();
       if (postError) throw postError;
+
+      const { data: postReactionsData, error: postReactionsError } = await supabase
+        .from('post_reactions')
+        .select('user_id')
+        .eq('post_id', id);
+      if (postReactionsError) throw postReactionsError;
+
       const postWithLikes = {
         ...postData,
-        likes_count: postData?.post_reactions?.length || 0,
+        post_reactions: postReactionsData || [],
+        likes_count: postReactionsData?.length || 0,
       };
-      setPost(postWithLikes);
+      setPost(postWithLikes as Post);
 
+      // Step 2: Fetch replies (without reactions)
       const { data: repliesData, error: repliesError } = await supabase
         .from('forum_post_replies')
-        .select('*, profiles!user_id(full_name), post_reactions!reply_id(user_id)')
+        .select('*, profiles!user_id(full_name)') // Remove post_reactions from here
         .eq('post_id', id)
         .order('created_at', { ascending: true });
+
       if (repliesError) throw repliesError;
-      const repliesWithLikes = repliesData?.map(reply => ({
-        ...reply,
-        likes_count: reply.post_reactions?.length || 0,
-      })) || [];
+
+      // Step 3: Fetch reactions for each reply and combine them
+      const repliesWithLikes = await Promise.all(
+        (repliesData || []).map(async (reply) => {
+          const { data: replyReactionsData, error: replyReactionsError } = await supabase
+            .from('post_reactions')
+            .select('user_id')
+            .eq('reply_id', reply.id);
+
+          // Don't throw here, just log error and continue
+          if (replyReactionsError) {
+            console.error(`Error fetching reactions for reply ${reply.id}:`, replyReactionsError);
+          }
+
+          return {
+            ...reply,
+            post_reactions: replyReactionsData || [],
+            likes_count: replyReactionsData?.length || 0,
+          };
+        })
+      );
       setReplies(repliesWithLikes);
 
     } catch (error) {
